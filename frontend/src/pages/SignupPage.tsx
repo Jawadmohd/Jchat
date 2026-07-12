@@ -39,6 +39,7 @@ export default function SignupPage() {
     defaultValues: {
       emailId: "",
       username: "",
+      name: "",
       password: "",
     },
   });
@@ -77,6 +78,22 @@ export default function SignupPage() {
             pattern: {
               value: /^\S+@\S+\.\S+$/,
               message: "Please enter a valid email address",
+            },
+          })}
+        />
+
+        <FormField
+          label="Display name"
+          type="text"
+          placeholder="Your full name"
+          autoComplete="name"
+          icon={<UserIcon />}
+          error={errors.name}
+          {...register("name", {
+            required: "Name is required",
+            maxLength: {
+              value: 60,
+              message: "Name cannot exceed 60 characters",
             },
           })}
         />

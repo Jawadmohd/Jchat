@@ -1,11 +1,14 @@
-import { Schema, model, type Document, type Model } from "mongoose";
+import { Schema, model, type Document, type Model, type Types } from "mongoose";
 
 export interface IUser {
   emailId: string;
   username: string;
+  name: string;
   password: string;
   avatarUrl?: string | null;
   avatarPublicId?: string | null;
+  lastSeen?: Date | null;
+  pinnedChatIds: Types.ObjectId[];
 }
 
 export interface IUserDocument extends IUser, Document {
@@ -31,6 +34,12 @@ const userSchema = new Schema<IUserDocument>(
       minlength: [3, "Username must be at least 3 characters"],
       maxlength: [30, "Username cannot exceed 30 characters"],
     },
+    name: {
+      type: String,
+      trim: true,
+      maxlength: [60, "Name cannot exceed 60 characters"],
+      default: "",
+    },
     password: {
       type: String,
       required: [true, "Password is required"],
@@ -45,6 +54,19 @@ const userSchema = new Schema<IUserDocument>(
       type: String,
       default: null,
       select: false,
+    },
+    lastSeen: {
+      type: Date,
+      default: null,
+    },
+    pinnedChatIds: {
+      type: [
+        {
+          type: Schema.Types.ObjectId,
+          ref: "Chat",
+        },
+      ],
+      default: [],
     },
   },
   { timestamps: true }

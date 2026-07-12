@@ -4,4 +4,5 @@ export {
   Message,
   type IMessage,
   type IMessageDocument,
+  type MessageType,
 } from "./message.model";

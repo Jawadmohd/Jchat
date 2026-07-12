@@ -15,7 +15,7 @@ export const authenticate = async (
     }
 
     const { userId } = verifyToken(token);
-    const user = await User.findById(userId).select("emailId username");
+    const user = await User.findById(userId).select("emailId username name");
 
     if (!user) {
       throw new ApiError(401, "User not found");
@@ -25,6 +25,7 @@ export const authenticate = async (
       id: user._id.toString(),
       emailId: user.emailId,
       username: user.username,
+      name: user.name?.trim() || user.username,
     };
 
     next();

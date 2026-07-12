@@ -7,6 +7,7 @@ import {
 } from "../../features/auth/authApi";
 import { useAuth } from "../../hooks/useAuth";
 import { getErrorMessage } from "../../utils/getErrorMessage";
+import { getUserDisplayName } from "../../utils/getUserDisplayName";
 import SettingsSection from "./SettingsSection";
 import UserAvatar from "./UserAvatar";
 
@@ -87,7 +88,7 @@ export default function ProfilePictureSettings() {
     >
       <div className="flex flex-1 flex-col items-center justify-center gap-5 py-2 text-center lg:py-6">
         <div className="relative">
-          <UserAvatar name={user.username} avatarUrl={displayAvatarUrl} size="lg" />
+          <UserAvatar name={getUserDisplayName(user)} avatarUrl={displayAvatarUrl} size="lg" />
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
@@ -100,8 +101,8 @@ export default function ProfilePictureSettings() {
         </div>
 
         <div>
-          <p className="text-sm font-medium text-secondary">{user.username}</p>
-          <p className="mt-0.5 text-xs text-muted">{user.emailId}</p>
+          <p className="text-sm font-medium text-secondary">{getUserDisplayName(user)}</p>
+          <p className="mt-0.5 text-xs text-muted">@{user.username}</p>
           <p className="mt-3 text-xs text-muted">JPG, PNG, WebP, or GIF. Max 5MB.</p>
         </div>
 

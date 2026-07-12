@@ -12,11 +12,14 @@ type ChatsViewProps = Pick<
   | "isLoadingUsers"
   | "isLoggingOut"
   | "selectedChatId"
-  | "selectedUser"
+  | "selectedChat"
   | "mobileShowChat"
+  | "newChatMode"
   | "showNewChat"
   | "handleOpenNewChat"
   | "handleCloseNewChat"
+  | "handleSelectNewChatMode"
+  | "handleBackToNewChatPicker"
   | "handleSelectChat"
   | "handleSelectChatById"
   | "handleChatStarted"
@@ -31,11 +34,14 @@ export default function ChatsView({
   isLoadingUsers,
   isLoggingOut,
   selectedChatId,
-  selectedUser,
+  selectedChat,
   mobileShowChat,
+  newChatMode,
   showNewChat,
   handleOpenNewChat,
   handleCloseNewChat,
+  handleSelectNewChatMode,
+  handleBackToNewChatPicker,
   handleSelectChat,
   handleSelectChatById,
   handleChatStarted,
@@ -43,7 +49,7 @@ export default function ChatsView({
   handleLogout,
 }: ChatsViewProps) {
   const hideSidebarOnMobile = mobileShowChat && !showNewChat;
-  const showMobileConversation = mobileShowChat && !!selectedUser && !showNewChat;
+  const showMobileConversation = mobileShowChat && !!selectedChat && !showNewChat;
 
   return (
     <div className="flex h-full min-h-0 w-full flex-1 flex-col lg:flex-row">
@@ -63,11 +69,11 @@ export default function ChatsView({
         />
       </div>
 
-      {showMobileConversation && selectedUser && selectedChatId && (
+      {showMobileConversation && selectedChat && selectedChatId && (
         <main className="flex h-full min-h-0 min-w-0 flex-1 flex-col lg:hidden">
           <ChatConversation
             chatId={selectedChatId}
-            user={selectedUser}
+            chat={selectedChat}
             onBack={handleBackToList}
           />
         </main>
@@ -75,22 +81,27 @@ export default function ChatsView({
 
       <ChatMainPanelContainer
         className="hidden lg:flex"
-        showNewChat={showNewChat}
+        newChatMode={newChatMode}
         selectedChatId={selectedChatId}
-        selectedUser={selectedUser}
+        selectedChat={selectedChat}
         users={users}
         isLoadingUsers={isLoadingUsers}
         onCloseNewChat={handleCloseNewChat}
+        onSelectNewChatMode={handleSelectNewChatMode}
+        onBackToNewChatPicker={handleBackToNewChatPicker}
         onChatStarted={handleChatStarted}
         onSelectChatById={handleSelectChatById}
         onBackToList={handleBackToList}
       />
 
-      {showNewChat && (
+      {newChatMode && (
         <NewChatOverlay
+          mode={newChatMode}
           users={users}
           isLoading={isLoadingUsers}
           onClose={handleCloseNewChat}
+          onSelectMode={handleSelectNewChatMode}
+          onBackToPicker={handleBackToNewChatPicker}
           onChatStarted={handleChatStarted}
           onSelectChat={handleSelectChatById}
         />

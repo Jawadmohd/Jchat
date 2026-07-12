@@ -5,12 +5,14 @@ import type { User } from "../../types/api";
 import { useCreateDirectChatMutation } from "../../features/chat/chatApi";
 import { useAuth } from "../../hooks/useAuth";
 import { getErrorMessage } from "../../utils/getErrorMessage";
+import { getUserDisplayName } from "../../utils/getUserDisplayName";
 import UserAvatar from "./UserAvatar";
 
 interface NewChatPanelProps {
   users: User[];
   isLoading: boolean;
   onClose: () => void;
+  onBack: () => void;
   onChatStarted: () => void;
   onSelectChat: (chatId: string) => void;
   variant?: "panel" | "overlay";
@@ -20,6 +22,7 @@ export default function NewChatPanel({
   users,
   isLoading,
   onClose,
+  onBack,
   onChatStarted,
   onSelectChat,
   variant = "panel",
@@ -69,6 +72,13 @@ export default function NewChatPanel({
         }`}
       >
         <div>
+          <button
+            type="button"
+            onClick={onBack}
+            className="mb-2 text-sm text-muted transition hover:text-secondary"
+          >
+            ← Back
+          </button>
           <h2 className="text-lg font-semibold">New chat</h2>
           <p className="mt-0.5 text-sm text-muted">Search users by usernames</p>
         </div>
@@ -111,12 +121,12 @@ export default function NewChatPanel({
                   onClick={() => handleStartChat(user.id)}
                   className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left transition hover:bg-tertiary disabled:opacity-60"
                 >
-                  <UserAvatar name={user.username} avatarUrl={user.avatarUrl} size="sm" />
+                  <UserAvatar name={getUserDisplayName(user)} avatarUrl={user.avatarUrl} size="sm" />
                   <div className="min-w-0">
                     <p className="truncate font-medium text-secondary">
-                      {user.username}
+                      {getUserDisplayName(user)}
                     </p>
-                    <p className="truncate text-sm text-muted">{user.emailId}</p>
+                    <p className="truncate text-sm text-muted">@{user.username}</p>
                   </div>
                 </button>
               </li>

@@ -71,3 +71,49 @@ export const deleteAvatarFromCloudinary = async (publicId?: string | null) => {
   configureCloudinary();
   await cloudinary.uploader.destroy(publicId, { resource_type: "image" });
 };
+
+interface MessageAttachmentUploadResult {
+  url: string;
+  name: string;
+  mimeType: string;
+  size: number;
+  messageType: "image" | "file";
+}
+
+export const uploadMessageAttachmentToCloudinary = async (
+  file: Express.Multer.File,
+  userId: string
+): Promise<MessageAttachmentUploadResult> => {
+  configureCloudinary();
+
+  const isImage = file.mimetype.startsWith("image/");
+  const resourceType = isImage ? "image" : "raw";
+
+  const result = await new Promise<UploadApiResponse>((resolve, reject) => {
+    const upload = cloudinary.uploader.upload_stream(
+      {
+        folder: isImage ? "jchat/messages/images" : "jchat/messages/files",
+        public_id: `${userId}-${Date.now()}`,
+        resource_type: resourceType,
+      },
+      (error, uploadResult) => {
+        if (error || !uploadResult) {
+          reject(error ?? new Error("Cloudinary upload failed"));
+          return;
+        }
+
+        resolve(uploadResult);
+      }
+    );
+
+    upload.end(file.buffer);
+  });
+
+  return {
+    url: result.secure_url,
+    name: file.originalname,
+    mimeType: file.mimetype,
+    size: file.size,
+    messageType: isImage ? "image" : "file",
+  };
+};

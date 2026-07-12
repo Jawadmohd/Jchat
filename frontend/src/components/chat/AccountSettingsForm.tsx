@@ -9,6 +9,7 @@ import { getErrorMessage } from "../../utils/getErrorMessage";
 import SettingsSection from "./SettingsSection";
 
 interface AccountFormValues {
+  name: string;
   username: string;
   emailId: string;
 }
@@ -24,6 +25,7 @@ export default function AccountSettingsForm() {
     formState: { errors, isDirty },
   } = useForm<AccountFormValues>({
     defaultValues: {
+      name: user?.name ?? "",
       username: user?.username ?? "",
       emailId: user?.emailId ?? "",
     },
@@ -32,6 +34,7 @@ export default function AccountSettingsForm() {
   useEffect(() => {
     if (user) {
       reset({
+        name: user.name,
         username: user.username,
         emailId: user.emailId,
       });
@@ -43,7 +46,11 @@ export default function AccountSettingsForm() {
   }
 
   const onSubmit = handleSubmit(async (data) => {
-    const payload: { username?: string; emailId?: string } = {};
+    const payload: { name?: string; username?: string; emailId?: string } = {};
+
+    if (data.name.trim() !== user.name) {
+      payload.name = data.name.trim();
+    }
 
     if (data.username.trim() !== user.username) {
       payload.username = data.username.trim();
@@ -62,6 +69,7 @@ export default function AccountSettingsForm() {
       const updatedUser = await updateProfile(payload).unwrap();
       toast.success("Account updated");
       reset({
+        name: updatedUser.name,
         username: updatedUser.username,
         emailId: updatedUser.emailId,
       });
@@ -73,9 +81,22 @@ export default function AccountSettingsForm() {
   return (
     <SettingsSection
       title="Account"
-      description="Update your username and email address."
+      description="Update your display name, username, and email address."
     >
       <form onSubmit={onSubmit} className="space-y-4">
+        <FormField
+          label="Display name"
+          icon={<UserIcon />}
+          error={errors.name}
+          {...register("name", {
+            required: "Name is required",
+            maxLength: {
+              value: 60,
+              message: "Name cannot exceed 60 characters",
+            },
+          })}
+        />
+
         <FormField
           label="Username"
           icon={<UserIcon />}

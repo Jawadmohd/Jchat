@@ -1,11 +1,22 @@
 import { Schema, model, type Document, type Model, type Types } from "mongoose";
 
+export type MessageType = "text" | "image" | "file";
+
 export interface IMessage {
   chat: Types.ObjectId;
   sender: Types.ObjectId;
   content: string;
+  messageType: MessageType;
+  attachmentUrl?: string | null;
+  attachmentName?: string | null;
+  attachmentMimeType?: string | null;
+  attachmentSize?: number | null;
   readBy: Types.ObjectId[];
   isEdited: boolean;
+  replyTo?: Types.ObjectId | null;
+  isPinned: boolean;
+  pinnedAt?: Date | null;
+  pinnedBy?: Types.ObjectId | null;
 }
 
 export interface IMessageDocument extends IMessage, Document {
@@ -28,9 +39,30 @@ const messageSchema = new Schema<IMessageDocument>(
     },
     content: {
       type: String,
-      required: [true, "Message content is required"],
+      default: "",
       trim: true,
       maxlength: [5000, "Message cannot exceed 5000 characters"],
+    },
+    messageType: {
+      type: String,
+      enum: ["text", "image", "file"],
+      default: "text",
+    },
+    attachmentUrl: {
+      type: String,
+      default: null,
+    },
+    attachmentName: {
+      type: String,
+      default: null,
+    },
+    attachmentMimeType: {
+      type: String,
+      default: null,
+    },
+    attachmentSize: {
+      type: Number,
+      default: null,
     },
     readBy: [
       {
@@ -42,11 +74,30 @@ const messageSchema = new Schema<IMessageDocument>(
       type: Boolean,
       default: false,
     },
+    replyTo: {
+      type: Schema.Types.ObjectId,
+      ref: "Message",
+      default: null,
+    },
+    isPinned: {
+      type: Boolean,
+      default: false,
+    },
+    pinnedAt: {
+      type: Date,
+      default: null,
+    },
+    pinnedBy: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
   },
   { timestamps: true }
 );
 
 messageSchema.index({ chat: 1, createdAt: -1 });
+messageSchema.index({ chat: 1, isPinned: 1, pinnedAt: -1 });
 
 export const Message: Model<IMessageDocument> = model<IMessageDocument>(
   "Message",

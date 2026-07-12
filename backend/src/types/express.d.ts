@@ -2,6 +2,7 @@ export interface AuthUser {
   id: string;
   emailId: string;
   username: string;
+  name: string;
 }
 
 declare global {

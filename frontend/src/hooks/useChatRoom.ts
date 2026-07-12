@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useAppDispatch } from "../app/hooks";
 import { chatApi } from "../features/chat/chatApi";
 import { getSocket } from "../lib/socket";
-import type { Message, MessageDeletedEvent, TypingEvent } from "../types/api";
+import type { Message, MessageDeletedEvent, MessagesReadEvent, TypingEvent } from "../types/api";
 import { useAuth } from "./useAuth";
 
 const TYPING_STOP_DELAY_MS = 2000;
@@ -23,11 +23,11 @@ export const useChatRoom = (chatId: string | null) => {
 
       dispatch(
         chatApi.util.updateQueryData("getMessages", chatId, (draft) => {
-          if (draft.some((item) => item.id === message.id)) {
+          if (draft.messages.some((item) => item.id === message.id)) {
             return;
           }
 
-          draft.push(message);
+          draft.messages.push(message);
         })
       );
 
@@ -49,10 +49,37 @@ export const useChatRoom = (chatId: string | null) => {
 
       dispatch(
         chatApi.util.updateQueryData("getMessages", chatId, (draft) => {
-          const index = draft.findIndex((item) => item.id === message.id);
+          const index = draft.messages.findIndex((item) => item.id === message.id);
 
           if (index !== -1) {
-            draft[index] = message;
+            draft.messages[index] = message;
+          }
+        })
+      );
+
+      dispatch(
+        chatApi.util.invalidateTags([
+          { type: "Chat", id: "LIST" },
+          { type: "Chat", id: chatId },
+          { type: "Message", id: `${chatId}-pinned` },
+        ])
+      );
+    },
+    [chatId, dispatch]
+  );
+
+  const applyMessagesRead = useCallback(
+    (event: MessagesReadEvent) => {
+      if (!chatId || event.chatId !== chatId) {
+        return;
+      }
+
+      dispatch(
+        chatApi.util.updateQueryData("getMessages", chatId, (draft) => {
+          for (const message of draft.messages) {
+            if (event.messageIds.includes(message.id) && !message.readBy.includes(event.userId)) {
+              message.readBy.push(event.userId);
+            }
           }
         })
       );
@@ -67,6 +94,15 @@ export const useChatRoom = (chatId: string | null) => {
     [chatId, dispatch]
   );
 
+  const markAsRead = useCallback(() => {
+    if (!chatId) {
+      return Promise.resolve();
+    }
+
+    getSocket().emit("messages:read", { chatId });
+    return Promise.resolve();
+  }, [chatId]);
+
   const removeMessageFromCache = useCallback(
     (event: MessageDeletedEvent) => {
       if (!chatId || event.chatId !== chatId) {
@@ -74,15 +110,16 @@ export const useChatRoom = (chatId: string | null) => {
       }
 
       dispatch(
-        chatApi.util.updateQueryData("getMessages", chatId, (draft) =>
-          draft.filter((item) => item.id !== event.messageId)
-        )
+        chatApi.util.updateQueryData("getMessages", chatId, (draft) => {
+          draft.messages = draft.messages.filter((item) => item.id !== event.messageId);
+        })
       );
 
       dispatch(
         chatApi.util.invalidateTags([
           { type: "Chat", id: "LIST" },
           { type: "Chat", id: chatId },
+          { type: "Message", id: `${chatId}-pinned` },
         ])
       );
     },
@@ -108,14 +145,34 @@ export const useChatRoom = (chatId: string | null) => {
     }
 
     const handleNewMessage = (message: Message) => {
+      if (message.chatId !== chatId) {
+        return;
+      }
+
       appendMessageToCache(message);
     };
 
     const handleUpdatedMessage = (message: Message) => {
+      if (message.chatId !== chatId) {
+        return;
+      }
+
+      updateMessageInCache(message);
+    };
+
+    const handlePinnedMessage = (message: Message) => {
+      if (message.chatId !== chatId) {
+        return;
+      }
+
       updateMessageInCache(message);
     };
 
     const handleDeletedMessage = (event: MessageDeletedEvent) => {
+      if (event.chatId !== chatId) {
+        return;
+      }
+
       removeMessageFromCache(event);
     };
 
@@ -124,7 +181,7 @@ export const useChatRoom = (chatId: string | null) => {
         return;
       }
 
-      setTypingUsername(event.username ?? "Someone");
+      setTypingUsername(event.name ?? event.username ?? "Someone");
 
       if (typingTimeoutRef.current) {
         clearTimeout(typingTimeoutRef.current);
@@ -148,26 +205,45 @@ export const useChatRoom = (chatId: string | null) => {
       }
     };
 
+    const handleMessagesRead = (event: MessagesReadEvent) => {
+      if (event.chatId !== chatId) {
+        return;
+      }
+
+      applyMessagesRead(event);
+    };
+
     socket.on("message:new", handleNewMessage);
     socket.on("message:updated", handleUpdatedMessage);
+    socket.on("message:pinned", handlePinnedMessage);
     socket.on("message:deleted", handleDeletedMessage);
     socket.on("typing:start", handleTypingStart);
     socket.on("typing:stop", handleTypingStop);
+    socket.on("messages:read", handleMessagesRead);
 
     return () => {
       socket.emit("chat:leave", { chatId });
       socket.off("connect", joinChat);
       socket.off("message:new", handleNewMessage);
       socket.off("message:updated", handleUpdatedMessage);
+      socket.off("message:pinned", handlePinnedMessage);
       socket.off("message:deleted", handleDeletedMessage);
       socket.off("typing:start", handleTypingStart);
       socket.off("typing:stop", handleTypingStop);
+      socket.off("messages:read", handleMessagesRead);
 
       if (typingTimeoutRef.current) {
         clearTimeout(typingTimeoutRef.current);
       }
     };
-  }, [appendMessageToCache, chatId, removeMessageFromCache, updateMessageInCache, user?.id]);
+  }, [
+    appendMessageToCache,
+    applyMessagesRead,
+    chatId,
+    removeMessageFromCache,
+    updateMessageInCache,
+    user?.id,
+  ]);
 
   const emitTypingStart = useCallback(() => {
     if (!chatId) {
@@ -206,7 +282,7 @@ export const useChatRoom = (chatId: string | null) => {
   }, [chatId]);
 
   const sendMessage = useCallback(
-    (content: string) =>
+    (content: string, replyToMessageId?: string) =>
       new Promise<Message>((resolve, reject) => {
         if (!chatId) {
           reject(new Error("No chat selected"));
@@ -217,7 +293,7 @@ export const useChatRoom = (chatId: string | null) => {
 
         socket.emit(
           "message:send",
-          { chatId, content },
+          { chatId, content, replyToMessageId },
           (response: { success: boolean; data?: Message; error?: string }) => {
             if (response?.success && response.data) {
               appendMessageToCache(response.data);
@@ -237,5 +313,6 @@ export const useChatRoom = (chatId: string | null) => {
     sendMessage,
     emitTypingStart,
     emitTypingStop,
+    markAsRead,
   };
 };

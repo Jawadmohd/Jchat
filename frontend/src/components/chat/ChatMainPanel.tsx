@@ -1,37 +1,55 @@
+import type { Chat, NewChatMode } from "../../types/api";
 import type { User } from "../../types/api";
 import ChatConversation from "./ChatConversation";
 import ChatEmptyState from "./ChatEmptyState";
 import NewChatPanel from "./NewChatPanel";
+import NewChatPicker from "./NewChatPicker";
+import NewGroupPanel from "./NewGroupPanel";
 
 interface ChatMainPanelProps {
-  showNewChat: boolean;
+  newChatMode: NewChatMode | null;
   selectedChatId: string | null;
-  selectedUser: User | null;
+  selectedChat: Chat | null;
   users: User[];
   isLoadingUsers: boolean;
   onCloseNewChat: () => void;
+  onSelectNewChatMode: (mode: NewChatMode) => void;
+  onBackToNewChatPicker: () => void;
   onChatStarted: () => void;
   onSelectChatById: (chatId: string) => void;
   onBackToList: () => void;
 }
 
 export default function ChatMainPanel({
-  showNewChat,
+  newChatMode,
   selectedChatId,
-  selectedUser,
+  selectedChat,
   users,
   isLoadingUsers,
   onCloseNewChat,
+  onSelectNewChatMode,
+  onBackToNewChatPicker,
   onChatStarted,
   onSelectChatById,
   onBackToList,
 }: ChatMainPanelProps) {
-  if (showNewChat) {
+  if (newChatMode === "picker") {
+    return (
+      <NewChatPicker
+        onSelect={onSelectNewChatMode}
+        onClose={onCloseNewChat}
+        variant="panel"
+      />
+    );
+  }
+
+  if (newChatMode === "direct") {
     return (
       <NewChatPanel
         users={users}
         isLoading={isLoadingUsers}
         onClose={onCloseNewChat}
+        onBack={onBackToNewChatPicker}
         onChatStarted={onChatStarted}
         onSelectChat={onSelectChatById}
         variant="panel"
@@ -39,9 +57,23 @@ export default function ChatMainPanel({
     );
   }
 
-  if (selectedUser && selectedChatId) {
+  if (newChatMode === "group") {
     return (
-      <ChatConversation chatId={selectedChatId} user={selectedUser} onBack={onBackToList} />
+      <NewGroupPanel
+        users={users}
+        isLoading={isLoadingUsers}
+        onClose={onCloseNewChat}
+        onBack={onBackToNewChatPicker}
+        onChatStarted={onChatStarted}
+        onSelectChat={onSelectChatById}
+        variant="panel"
+      />
+    );
+  }
+
+  if (selectedChat && selectedChatId) {
+    return (
+      <ChatConversation chatId={selectedChatId} chat={selectedChat} onBack={onBackToList} />
     );
   }
 
@@ -60,24 +92,18 @@ interface ChatMainPanelContainerProps extends ChatMainPanelProps {
 
 export function ChatMainPanelContainer({
   className = "",
-  showNewChat,
-  selectedChatId,
-  selectedUser,
+  newChatMode,
+  selectedChat,
   ...panelProps
 }: ChatMainPanelContainerProps) {
-  const usePatternBackground = !showNewChat && !selectedUser;
+  const usePatternBackground = !newChatMode && !selectedChat;
 
   return (
     <main
       className={`min-h-0 min-w-0 flex-1 flex-col ${className}`}
       style={usePatternBackground ? CHAT_BACKGROUND_STYLE : undefined}
     >
-      <ChatMainPanel
-        showNewChat={showNewChat}
-        selectedChatId={selectedChatId}
-        selectedUser={selectedUser}
-        {...panelProps}
-      />
+      <ChatMainPanel newChatMode={newChatMode} selectedChat={selectedChat} {...panelProps} />
     </main>
   );
 }

@@ -1,21 +1,33 @@
-import { HiChevronLeft, HiEllipsisVertical, HiMagnifyingGlass } from "react-icons/hi2";
-import type { User } from "../../types/api";
+import type { Chat } from "../../types/api";
+import { HiMapPin, HiUsers } from "react-icons/hi2";
+import { formatPresenceStatus } from "../../utils/formatPresenceStatus";
+import { getUserDisplayName } from "../../utils/getUserDisplayName";
 import UserAvatar from "./UserAvatar";
+import GroupAvatar from "./GroupAvatar";
 
 interface ChatHeaderProps {
-  user: User;
+  chat: Chat;
   onBack?: () => void;
   showBackButton?: boolean;
   typingUsername?: string | null;
 }
 
 export default function ChatHeader({
-  user,
+  chat,
   onBack,
   showBackButton = false,
   typingUsername = null,
 }: ChatHeaderProps) {
-  const statusText = typingUsername ? `${typingUsername} is typing...` : "online";
+  const isGroup = chat.type === "group";
+  const displayUser = chat.otherParticipant;
+
+  const statusText = typingUsername
+    ? `${typingUsername} is typing...`
+    : isGroup
+      ? `${chat.participants.length} participants`
+      : displayUser
+        ? formatPresenceStatus(displayUser)
+        : "offline";
 
   return (
     <header className="flex shrink-0 items-center justify-between border-b border-secondary/10 bg-tertiary px-3 py-2.5 lg:px-4">
@@ -27,15 +39,30 @@ export default function ChatHeader({
             className="rounded-full p-2 text-muted transition hover:bg-primary lg:hidden"
             aria-label="Back to chats"
           >
-            <HiChevronLeft className="h-5 w-5" />
+            ←
           </button>
         )}
-        <UserAvatar name={user.username} avatarUrl={user.avatarUrl} size="sm" />
+
+        {isGroup ? (
+          <GroupAvatar name={chat.displayName} size="sm" />
+        ) : (
+          displayUser && (
+            <UserAvatar
+              name={getUserDisplayName(displayUser)}
+              avatarUrl={displayUser.avatarUrl}
+              size="sm"
+              showOnline={displayUser.isOnline}
+            />
+          )
+        )}
+
         <div className="min-w-0">
-          <p className="truncate font-medium text-secondary">{user.username}</p>
+          <p className="truncate font-medium text-secondary">{chat.displayName}</p>
           <p
             className={`truncate text-xs ${
-              typingUsername ? "font-medium text-secondary" : "text-muted"
+              typingUsername || displayUser?.isOnline
+                ? "font-medium text-secondary"
+                : "text-muted"
             }`}
           >
             {statusText}
@@ -43,21 +70,9 @@ export default function ChatHeader({
         </div>
       </div>
 
-      <div className="flex items-center gap-1">
-        <button
-          type="button"
-          className="rounded-full p-2 text-muted transition hover:bg-primary"
-          aria-label="Search in chat"
-        >
-          <HiMagnifyingGlass className="h-5 w-5" />
-        </button>
-        <button
-          type="button"
-          className="rounded-full p-2 text-muted transition hover:bg-primary"
-          aria-label="Chat menu"
-        >
-          <HiEllipsisVertical className="h-5 w-5" />
-        </button>
+      <div className="flex items-center gap-1 text-muted">
+        {chat.isPinned && <HiMapPin className="h-5 w-5" title="Pinned chat" />}
+        {isGroup && <HiUsers className="h-5 w-5" title="Group chat" />}
       </div>
     </header>
   );

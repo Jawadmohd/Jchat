@@ -4,8 +4,10 @@ import toast from "react-hot-toast";
 import { useGetUsersQuery, useLogoutMutation } from "../features/auth/authApi";
 import { useGetChatsQuery } from "../features/chat/chatApi";
 import type { NavTab } from "../components/chat/NavRail";
-import type { Chat } from "../types/api";
+import type { Chat, NewChatMode } from "../types/api";
 import { getErrorMessage } from "../utils/getErrorMessage";
+import { useChatInboxSync } from "./useChatInboxSync";
+import { usePresence } from "./usePresence";
 
 export function useHomePage() {
   const navigate = useNavigate();
@@ -16,7 +18,7 @@ export function useHomePage() {
   const [activeTab, setActiveTab] = useState<NavTab>("chats");
   const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
   const [mobileShowChat, setMobileShowChat] = useState(false);
-  const [showNewChat, setShowNewChat] = useState(false);
+  const [newChatMode, setNewChatMode] = useState<NewChatMode | null>(null);
 
   const selectedChat = useMemo(
     () => chats.find((chat) => chat.id === selectedChatId) ?? null,
@@ -25,25 +27,36 @@ export function useHomePage() {
 
   const selectedUser = selectedChat?.otherParticipant ?? null;
 
+  useChatInboxSync(selectedChatId);
+  usePresence();
+
   const openChat = (chatId: string) => {
     setSelectedChatId(chatId);
     setMobileShowChat(true);
-    setShowNewChat(false);
+    setNewChatMode(null);
   };
 
   const handleTabChange = (tab: NavTab) => {
     setActiveTab(tab);
     setMobileShowChat(false);
-    setShowNewChat(false);
+    setNewChatMode(null);
   };
 
   const handleOpenNewChat = () => {
-    setShowNewChat(true);
+    setNewChatMode("picker");
     setMobileShowChat(false);
   };
 
   const handleCloseNewChat = () => {
-    setShowNewChat(false);
+    setNewChatMode(null);
+  };
+
+  const handleSelectNewChatMode = (mode: NewChatMode) => {
+    setNewChatMode(mode);
+  };
+
+  const handleBackToNewChatPicker = () => {
+    setNewChatMode("picker");
   };
 
   const handleSelectChat = (chat: Chat) => {
@@ -60,6 +73,7 @@ export function useHomePage() {
 
   const handleBackToList = () => {
     setMobileShowChat(false);
+    setSelectedChatId(null);
   };
 
   const handleLogout = async () => {
@@ -80,13 +94,17 @@ export function useHomePage() {
     isLoadingUsers,
     isLoggingOut,
     selectedChatId,
+    selectedChat,
     selectedUser,
     mobileShowChat,
-    showNewChat,
-    hideMobileNav: mobileShowChat || showNewChat,
+    newChatMode,
+    showNewChat: newChatMode !== null,
+    hideMobileNav: mobileShowChat || newChatMode !== null,
     handleTabChange,
     handleOpenNewChat,
     handleCloseNewChat,
+    handleSelectNewChatMode,
+    handleBackToNewChatPicker,
     handleSelectChat,
     handleSelectChatById,
     handleChatStarted,

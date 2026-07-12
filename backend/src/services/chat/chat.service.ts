@@ -1,9 +1,13 @@
+import { Types } from "mongoose";
 import { Chat, User, type IChatDocument } from "../../models";
+import { getMessagePreview, getUnreadCountsByChat } from "../message/message.service";
+import { getPresenceForUsers } from "../presence/presence.service";
 import { ApiError } from "../../utils";
 
 interface PopulatedUser {
   _id: { toString(): string };
   username: string;
+  name?: string;
   emailId: string;
   avatarUrl?: string | null;
 }
@@ -11,20 +15,34 @@ interface PopulatedUser {
 interface PopulatedMessage {
   _id: { toString(): string };
   content: string;
+  messageType: "text" | "image" | "file";
+  attachmentName?: string | null;
   sender: PopulatedUser | { toString(): string };
   createdAt: Date;
 }
 
-const toPublicUser = (user: PopulatedUser) => ({
+const toPublicUser = (
+  user: PopulatedUser,
+  presence?: { isOnline: boolean; lastSeen: string | null }
+) => ({
   id: user._id.toString(),
   username: user.username,
+  name: user.name?.trim() || user.username,
   emailId: user.emailId,
   avatarUrl: user.avatarUrl ?? null,
+  isOnline: presence?.isOnline ?? false,
+  lastSeen: presence?.lastSeen ?? null,
 });
 
-const toPublicChat = (chat: IChatDocument, currentUserId: string) => {
-  const participants = (chat.participants as unknown as PopulatedUser[]).map(
-    toPublicUser
+const toPublicChat = (
+  chat: IChatDocument,
+  currentUserId: string,
+  unreadCount = 0,
+  isPinned = false,
+  presenceMap = new Map<string, { isOnline: boolean; lastSeen: string | null }>()
+) => {
+  const participants = (chat.participants as unknown as PopulatedUser[]).map((user) =>
+    toPublicUser(user, presenceMap.get(user._id.toString()))
   );
 
   const otherParticipant =
@@ -35,7 +53,7 @@ const toPublicChat = (chat: IChatDocument, currentUserId: string) => {
   const displayName =
     chat.type === "group"
       ? chat.name ?? "Group chat"
-      : otherParticipant?.username ?? "Unknown user";
+      : otherParticipant?.name ?? "Unknown user";
 
   const lastMessageDoc = chat.lastMessage as unknown as PopulatedMessage | null;
   let lastMessage = null;
@@ -48,7 +66,8 @@ const toPublicChat = (chat: IChatDocument, currentUserId: string) => {
 
     lastMessage = {
       id: lastMessageDoc._id.toString(),
-      content: lastMessageDoc.content,
+      content: getMessagePreview(lastMessageDoc),
+      messageType: lastMessageDoc.messageType ?? "text",
       senderId,
       createdAt: lastMessageDoc.createdAt,
     };
@@ -62,22 +81,75 @@ const toPublicChat = (chat: IChatDocument, currentUserId: string) => {
     participants,
     otherParticipant,
     lastMessage,
+    unreadCount,
+    isPinned,
     updatedAt: chat.updatedAt,
     createdAt: chat.createdAt,
   };
 };
 
-export const getUserChats = async (userId: string) => {
-  const chats = await Chat.find({ participants: userId })
-    .sort({ updatedAt: -1 })
-    .populate("participants", "username emailId avatarUrl")
-    .populate({
-      path: "lastMessage",
-      select: "content sender createdAt",
-      populate: { path: "sender", select: "username emailId avatarUrl" },
-    });
+const populateOptions = [
+  { path: "participants", select: "username name emailId avatarUrl" },
+  {
+    path: "lastMessage",
+    select: "content messageType attachmentName sender createdAt",
+    populate: { path: "sender", select: "username name emailId avatarUrl" },
+  },
+] as const;
 
-  return chats.map((chat) => toPublicChat(chat, userId));
+export const getUserChats = async (userId: string) => {
+  const currentUser = await User.findById(userId).select("pinnedChatIds");
+
+  if (!currentUser) {
+    throw new ApiError(404, "User not found");
+  }
+
+  const pinnedChatIds = currentUser.pinnedChatIds.map((id) => id.toString());
+  const pinnedOrder = new Map(pinnedChatIds.map((id, index) => [id, index]));
+
+  const chats = await Chat.find({ participants: userId })
+    .populate(populateOptions[0])
+    .populate(populateOptions[1]);
+
+  const unreadMap = await getUnreadCountsByChat(
+    userId,
+    chats.map((chat) => chat._id.toString())
+  );
+
+  const otherUserIds = chats
+    .filter((chat) => chat.type === "direct")
+    .map((chat) => {
+      const participant = (chat.participants as unknown as PopulatedUser[]).find(
+        (user) => user._id.toString() !== userId
+      );
+      return participant?._id.toString();
+    })
+    .filter((id): id is string => Boolean(id));
+
+  const presenceMap = await getPresenceForUsers(otherUserIds);
+
+  const publicChats = chats.map((chat) => {
+    const chatId = chat._id.toString();
+    return toPublicChat(
+      chat,
+      userId,
+      unreadMap.get(chatId) ?? 0,
+      pinnedOrder.has(chatId),
+      presenceMap
+    );
+  });
+
+  return publicChats.sort((a, b) => {
+    if (a.isPinned !== b.isPinned) {
+      return a.isPinned ? -1 : 1;
+    }
+
+    if (a.isPinned && b.isPinned) {
+      return (pinnedOrder.get(a.id) ?? 0) - (pinnedOrder.get(b.id) ?? 0);
+    }
+
+    return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+  });
 };
 
 export const getOrCreateDirectChat = async (
@@ -98,15 +170,21 @@ export const getOrCreateDirectChat = async (
     type: "direct",
     participants: { $all: [userId, participantId], $size: 2 },
   })
-    .populate("participants", "username emailId avatarUrl")
-    .populate({
-      path: "lastMessage",
-      select: "content sender createdAt",
-      populate: { path: "sender", select: "username emailId avatarUrl" },
-    });
+    .populate(populateOptions[0])
+    .populate(populateOptions[1]);
 
   if (existingChat) {
-    return toPublicChat(existingChat, userId);
+    const currentUser = await User.findById(userId).select("pinnedChatIds");
+    const pinnedChatIds = currentUser?.pinnedChatIds.map((id) => id.toString()) ?? [];
+    const unreadMap = await getUnreadCountsByChat(userId, [existingChat._id.toString()]);
+    const presenceMap = await getPresenceForUsers([participantId]);
+    return toPublicChat(
+      existingChat,
+      userId,
+      unreadMap.get(existingChat._id.toString()) ?? 0,
+      pinnedChatIds.includes(existingChat._id.toString()),
+      presenceMap
+    );
   }
 
   const chat = await Chat.create({
@@ -114,9 +192,44 @@ export const getOrCreateDirectChat = async (
     participants: [userId, participantId],
   });
 
-  await chat.populate("participants", "username emailId");
+  await chat.populate("participants", "username name emailId avatarUrl");
 
-  return toPublicChat(chat, userId);
+  return toPublicChat(chat, userId, 0);
+};
+
+export const createGroupChat = async (
+  userId: string,
+  name: string,
+  participantIds: string[]
+) => {
+  const trimmedName = name.trim();
+
+  if (!trimmedName) {
+    throw new ApiError(400, "Group name is required");
+  }
+
+  const uniqueParticipantIds = [...new Set(participantIds.filter((id) => id !== userId))];
+
+  if (uniqueParticipantIds.length < 1) {
+    throw new ApiError(400, "Select at least one member for the group");
+  }
+
+  const participants = [userId, ...uniqueParticipantIds];
+  const existingUsers = await User.find({ _id: { $in: participants } }).select("_id");
+
+  if (existingUsers.length !== participants.length) {
+    throw new ApiError(404, "One or more selected users were not found");
+  }
+
+  const chat = await Chat.create({
+    type: "group",
+    name: trimmedName,
+    participants,
+  });
+
+  await chat.populate("participants", "username name emailId avatarUrl");
+
+  return toPublicChat(chat, userId, 0);
 };
 
 export const getChatById = async (chatId: string, userId: string) => {
@@ -124,16 +237,61 @@ export const getChatById = async (chatId: string, userId: string) => {
     _id: chatId,
     participants: userId,
   })
-    .populate("participants", "username emailId avatarUrl")
-    .populate({
-      path: "lastMessage",
-      select: "content sender createdAt",
-      populate: { path: "sender", select: "username emailId avatarUrl" },
-    });
+    .populate(populateOptions[0])
+    .populate(populateOptions[1]);
 
   if (!chat) {
     throw new ApiError(404, "Chat not found");
   }
 
-  return toPublicChat(chat, userId);
+  const currentUser = await User.findById(userId).select("pinnedChatIds");
+  const pinnedChatIds = currentUser?.pinnedChatIds.map((id) => id.toString()) ?? [];
+  const unreadMap = await getUnreadCountsByChat(userId, [chatId]);
+
+  const otherUserId =
+    chat.type === "direct"
+      ? (chat.participants as unknown as PopulatedUser[])
+          .find((user) => user._id.toString() !== userId)
+          ?._id.toString()
+      : undefined;
+
+  const presenceMap = await getPresenceForUsers(otherUserId ? [otherUserId] : []);
+
+  return toPublicChat(
+    chat,
+    userId,
+    unreadMap.get(chatId) ?? 0,
+    pinnedChatIds.includes(chatId),
+    presenceMap
+  );
+};
+
+export const pinChat = async (chatId: string, userId: string) => {
+  await getChatById(chatId, userId);
+
+  const user = await User.findById(userId).select("pinnedChatIds");
+
+  if (!user) {
+    throw new ApiError(404, "User not found");
+  }
+
+  const chatObjectId = chatId;
+  const alreadyPinned = user.pinnedChatIds.some((id) => id.toString() === chatObjectId);
+
+  if (!alreadyPinned) {
+    user.pinnedChatIds.push(new Types.ObjectId(chatId));
+    await user.save();
+  }
+
+  return { chatId, isPinned: true };
+};
+
+export const unpinChat = async (chatId: string, userId: string) => {
+  await getChatById(chatId, userId);
+
+  await User.findByIdAndUpdate(userId, {
+    $pull: { pinnedChatIds: chatId },
+  });
+
+  return { chatId, isPinned: false };
 };

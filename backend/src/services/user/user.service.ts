@@ -9,6 +9,7 @@ import {
 interface RegisterInput {
   emailId: string;
   username: string;
+  name: string;
   password: string;
 }
 
@@ -20,6 +21,7 @@ interface LoginInput {
 interface UpdateUserInput {
   emailId?: string;
   username?: string;
+  name?: string;
   password?: string;
   currentPassword?: string;
 }
@@ -28,7 +30,9 @@ const toPublicUser = (user: IUserDocument) => ({
   id: user._id.toString(),
   emailId: user.emailId,
   username: user.username,
+  name: user.name?.trim() || user.username,
   avatarUrl: user.avatarUrl ?? null,
+  lastSeen: user.lastSeen ? user.lastSeen.toISOString() : null,
   createdAt: user.createdAt,
   updatedAt: user.updatedAt,
 });
@@ -81,7 +85,7 @@ export const loginUser = async (input: LoginInput) => {
 };
 
 export const getAllUsers = async () => {
-  const users = await User.find().sort({ createdAt: -1 });
+  const users = await User.find().sort({ username: 1 });
   return users.map(toPublicUser);
 };
 
@@ -138,6 +142,7 @@ export const updateUser = async (userId: string, input: UpdateUserInput) => {
 
   if (input.emailId) user.emailId = input.emailId;
   if (input.username) user.username = input.username;
+  if (input.name !== undefined) user.name = input.name.trim();
 
   await user.save();
 

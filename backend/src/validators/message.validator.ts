@@ -1,10 +1,8 @@
 import Joi from "joi";
 
 export const createMessageSchema = Joi.object({
-  content: Joi.string().trim().min(1).max(5000).required().messages({
-    "string.empty": "Message cannot be empty",
-    "any.required": "Message content is required",
-  }),
+  content: Joi.string().trim().max(5000).allow("").default(""),
+  replyToMessageId: Joi.string().hex().length(24).optional(),
 });
 
 export const updateMessageSchema = Joi.object({

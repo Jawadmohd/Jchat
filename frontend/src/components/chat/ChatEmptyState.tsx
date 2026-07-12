@@ -1,4 +1,5 @@
 import type { User } from "../../types/api";
+import { getUserDisplayName } from "../../utils/getUserDisplayName";
 import UserAvatar from "./UserAvatar";
 
 interface ChatEmptyStateProps {
@@ -9,9 +10,14 @@ export default function ChatEmptyState({ user }: ChatEmptyStateProps) {
   if (user) {
     return (
       <div className="flex h-full flex-col items-center justify-center bg-primary px-6 text-center">
-        <UserAvatar name={user.username} avatarUrl={user.avatarUrl} size="lg" className="mb-5" />
-        <h2 className="text-2xl font-semibold text-secondary">{user.username}</h2>
-        <p className="mt-2 max-w-sm text-sm text-muted">{user.emailId}</p>
+        <UserAvatar
+          name={getUserDisplayName(user)}
+          avatarUrl={user.avatarUrl}
+          size="lg"
+          className="mb-5"
+        />
+        <h2 className="text-2xl font-semibold text-secondary">{getUserDisplayName(user)}</h2>
+        <p className="mt-2 max-w-sm text-sm text-muted">@{user.username}</p>
         <p className="mt-6 max-w-md text-sm leading-relaxed text-muted">
           Send a message to start the conversation.
         </p>

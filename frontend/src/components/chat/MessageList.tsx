@@ -1,24 +1,86 @@
 import { useEffect, useRef } from "react";
-import type { Message } from "../../types/api";
+import type { Chat, Message } from "../../types/api";
+import {
+  formatMessageDateLabel,
+  getMessageDateKey,
+} from "../../utils/formatMessageDateLabel";
 import MessageBubble from "./MessageBubble";
+import MessageDateDivider from "./MessageDateDivider";
 
 interface MessageListProps {
+  chat: Chat;
   messages: Message[];
   isLoading: boolean;
+  hasMore: boolean;
+  isLoadingOlder: boolean;
+  onLoadOlder: () => void;
   onEditMessage: (messageId: string, content: string) => Promise<void>;
   onDeleteMessage: (messageId: string) => Promise<void>;
+  onReplyMessage: (message: Message) => void;
+  onPinMessage: (messageId: string) => Promise<void>;
+  onUnpinMessage: (messageId: string) => Promise<void>;
 }
 
 export default function MessageList({
+  chat,
   messages,
   isLoading,
+  hasMore,
+  isLoadingOlder,
+  onLoadOlder,
   onEditMessage,
   onDeleteMessage,
+  onReplyMessage,
+  onPinMessage,
+  onUnpinMessage,
 }: MessageListProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const shouldStickToBottomRef = useRef(true);
+  const previousMessageCountRef = useRef(0);
+  const previousScrollHeightRef = useRef(0);
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    const container = containerRef.current;
+
+    if (!container) {
+      return;
+    }
+
+    const handleScroll = () => {
+      const distanceFromBottom =
+        container.scrollHeight - container.scrollTop - container.clientHeight;
+      shouldStickToBottomRef.current = distanceFromBottom < 80;
+
+      if (container.scrollTop < 80 && hasMore && !isLoadingOlder) {
+        onLoadOlder();
+      }
+    };
+
+    container.addEventListener("scroll", handleScroll);
+    return () => container.removeEventListener("scroll", handleScroll);
+  }, [hasMore, isLoadingOlder, onLoadOlder]);
+
+  useEffect(() => {
+    const container = containerRef.current;
+
+    if (!container) {
+      return;
+    }
+
+    const previousCount = previousMessageCountRef.current;
+    const currentCount = messages.length;
+    const isPrepend = currentCount > previousCount && previousCount > 0;
+
+    if (isPrepend && !shouldStickToBottomRef.current) {
+      const heightDiff = container.scrollHeight - previousScrollHeightRef.current;
+      container.scrollTop += heightDiff;
+    } else if (shouldStickToBottomRef.current) {
+      bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+
+    previousMessageCountRef.current = currentCount;
+    previousScrollHeightRef.current = container.scrollHeight;
   }, [messages]);
 
   if (isLoading) {
@@ -38,16 +100,49 @@ export default function MessageList({
   }
 
   return (
-    <div className="h-full overflow-y-auto px-3 py-4 md:px-4">
+    <div ref={containerRef} className="h-full overflow-y-auto px-3 py-4 md:px-4">
       <div className="flex flex-col gap-2">
-        {messages.map((message) => (
-          <MessageBubble
-            key={message.id}
-            message={message}
-            onEdit={onEditMessage}
-            onDelete={onDeleteMessage}
-          />
-        ))}
+        {isLoadingOlder && (
+          <div className="flex justify-center py-2">
+            <p className="text-xs text-muted">Loading older messages...</p>
+          </div>
+        )}
+
+        {hasMore && !isLoadingOlder && (
+          <div className="flex justify-center py-1">
+            <button
+              type="button"
+              onClick={onLoadOlder}
+              className="rounded-full bg-tertiary px-3 py-1 text-xs text-muted transition hover:bg-primary hover:text-secondary"
+            >
+              Load older messages
+            </button>
+          </div>
+        )}
+
+        {messages.map((message, index) => {
+          const currentDateKey = getMessageDateKey(message.createdAt);
+          const previousDateKey =
+            index > 0 ? getMessageDateKey(messages[index - 1].createdAt) : null;
+          const showDateDivider = currentDateKey !== previousDateKey;
+
+          return (
+            <div key={message.id}>
+              {showDateDivider && (
+                <MessageDateDivider label={formatMessageDateLabel(message.createdAt)} />
+              )}
+              <MessageBubble
+                message={message}
+                chat={chat}
+                onEdit={onEditMessage}
+                onDelete={onDeleteMessage}
+                onReply={onReplyMessage}
+                onPin={onPinMessage}
+                onUnpin={onUnpinMessage}
+              />
+            </div>
+          );
+        })}
         <div ref={bottomRef} />
       </div>
     </div>
