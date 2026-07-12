@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { useGetMeQuery } from "../features/auth/authApi";
 import { useAuth } from "../hooks/useAuth";
+import { useSocketConnection } from "../hooks/useSocketConnection";
 
 interface AuthBootstrapProps {
   children: ReactNode;
@@ -9,6 +10,8 @@ interface AuthBootstrapProps {
 export default function AuthBootstrap({ children }: AuthBootstrapProps) {
   const { isLoading } = useGetMeQuery();
   const { isInitializing } = useAuth();
+
+  useSocketConnection();
 
   if (isInitializing || isLoading) {
     return (

@@ -1,0 +1,241 @@
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useAppDispatch } from "../app/hooks";
+import { chatApi } from "../features/chat/chatApi";
+import { getSocket } from "../lib/socket";
+import type { Message, MessageDeletedEvent, TypingEvent } from "../types/api";
+import { useAuth } from "./useAuth";
+
+const TYPING_STOP_DELAY_MS = 2000;
+
+export const useChatRoom = (chatId: string | null) => {
+  const dispatch = useAppDispatch();
+  const { user } = useAuth();
+  const [typingUsername, setTypingUsername] = useState<string | null>(null);
+  const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isTypingRef = useRef(false);
+  const typingStopTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const appendMessageToCache = useCallback(
+    (message: Message) => {
+      if (!chatId || message.chatId !== chatId) {
+        return;
+      }
+
+      dispatch(
+        chatApi.util.updateQueryData("getMessages", chatId, (draft) => {
+          if (draft.some((item) => item.id === message.id)) {
+            return;
+          }
+
+          draft.push(message);
+        })
+      );
+
+      dispatch(
+        chatApi.util.invalidateTags([
+          { type: "Chat", id: "LIST" },
+          { type: "Chat", id: chatId },
+        ])
+      );
+    },
+    [chatId, dispatch]
+  );
+
+  const updateMessageInCache = useCallback(
+    (message: Message) => {
+      if (!chatId || message.chatId !== chatId) {
+        return;
+      }
+
+      dispatch(
+        chatApi.util.updateQueryData("getMessages", chatId, (draft) => {
+          const index = draft.findIndex((item) => item.id === message.id);
+
+          if (index !== -1) {
+            draft[index] = message;
+          }
+        })
+      );
+
+      dispatch(
+        chatApi.util.invalidateTags([
+          { type: "Chat", id: "LIST" },
+          { type: "Chat", id: chatId },
+        ])
+      );
+    },
+    [chatId, dispatch]
+  );
+
+  const removeMessageFromCache = useCallback(
+    (event: MessageDeletedEvent) => {
+      if (!chatId || event.chatId !== chatId) {
+        return;
+      }
+
+      dispatch(
+        chatApi.util.updateQueryData("getMessages", chatId, (draft) =>
+          draft.filter((item) => item.id !== event.messageId)
+        )
+      );
+
+      dispatch(
+        chatApi.util.invalidateTags([
+          { type: "Chat", id: "LIST" },
+          { type: "Chat", id: chatId },
+        ])
+      );
+    },
+    [chatId, dispatch]
+  );
+
+  useEffect(() => {
+    if (!chatId) {
+      return;
+    }
+
+    const socket = getSocket();
+
+    const joinChat = () => {
+      socket.emit("chat:join", { chatId });
+    };
+
+    if (socket.connected) {
+      joinChat();
+    } else {
+      socket.connect();
+      socket.once("connect", joinChat);
+    }
+
+    const handleNewMessage = (message: Message) => {
+      appendMessageToCache(message);
+    };
+
+    const handleUpdatedMessage = (message: Message) => {
+      updateMessageInCache(message);
+    };
+
+    const handleDeletedMessage = (event: MessageDeletedEvent) => {
+      removeMessageFromCache(event);
+    };
+
+    const handleTypingStart = (event: TypingEvent) => {
+      if (event.chatId !== chatId || event.userId === user?.id) {
+        return;
+      }
+
+      setTypingUsername(event.username ?? "Someone");
+
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+
+      typingTimeoutRef.current = setTimeout(() => {
+        setTypingUsername(null);
+      }, TYPING_STOP_DELAY_MS + 500);
+    };
+
+    const handleTypingStop = (event: TypingEvent) => {
+      if (event.chatId !== chatId || event.userId === user?.id) {
+        return;
+      }
+
+      setTypingUsername(null);
+
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+        typingTimeoutRef.current = null;
+      }
+    };
+
+    socket.on("message:new", handleNewMessage);
+    socket.on("message:updated", handleUpdatedMessage);
+    socket.on("message:deleted", handleDeletedMessage);
+    socket.on("typing:start", handleTypingStart);
+    socket.on("typing:stop", handleTypingStop);
+
+    return () => {
+      socket.emit("chat:leave", { chatId });
+      socket.off("connect", joinChat);
+      socket.off("message:new", handleNewMessage);
+      socket.off("message:updated", handleUpdatedMessage);
+      socket.off("message:deleted", handleDeletedMessage);
+      socket.off("typing:start", handleTypingStart);
+      socket.off("typing:stop", handleTypingStop);
+
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+    };
+  }, [appendMessageToCache, chatId, removeMessageFromCache, updateMessageInCache, user?.id]);
+
+  const emitTypingStart = useCallback(() => {
+    if (!chatId) {
+      return;
+    }
+
+    const socket = getSocket();
+
+    if (!isTypingRef.current) {
+      isTypingRef.current = true;
+      socket.emit("typing:start", { chatId });
+    }
+
+    if (typingStopTimeoutRef.current) {
+      clearTimeout(typingStopTimeoutRef.current);
+    }
+
+    typingStopTimeoutRef.current = setTimeout(() => {
+      isTypingRef.current = false;
+      socket.emit("typing:stop", { chatId });
+    }, TYPING_STOP_DELAY_MS);
+  }, [chatId]);
+
+  const emitTypingStop = useCallback(() => {
+    if (!chatId || !isTypingRef.current) {
+      return;
+    }
+
+    isTypingRef.current = false;
+    getSocket().emit("typing:stop", { chatId });
+
+    if (typingStopTimeoutRef.current) {
+      clearTimeout(typingStopTimeoutRef.current);
+      typingStopTimeoutRef.current = null;
+    }
+  }, [chatId]);
+
+  const sendMessage = useCallback(
+    (content: string) =>
+      new Promise<Message>((resolve, reject) => {
+        if (!chatId) {
+          reject(new Error("No chat selected"));
+          return;
+        }
+
+        const socket = getSocket();
+
+        socket.emit(
+          "message:send",
+          { chatId, content },
+          (response: { success: boolean; data?: Message; error?: string }) => {
+            if (response?.success && response.data) {
+              appendMessageToCache(response.data);
+              resolve(response.data);
+              return;
+            }
+
+            reject(new Error(response?.error ?? "Failed to send message"));
+          }
+        );
+      }),
+    [appendMessageToCache, chatId]
+  );
+
+  return {
+    typingUsername,
+    sendMessage,
+    emitTypingStart,
+    emitTypingStop,
+  };
+};

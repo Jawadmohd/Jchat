@@ -11,7 +11,9 @@ import type {
   AuthResponse,
   LoginRequest,
   RegisterRequest,
+  UpdateProfileRequest,
   User,
+  UsersListResponse,
 } from "../../types/api";
 
 const baseUrl = import.meta.env.VITE_API_URL ?? "http://localhost:8000/api";
@@ -50,7 +52,7 @@ const baseQueryWithReauth: BaseQueryFn<
 export const authApi = createApi({
   reducerPath: "authApi",
   baseQuery: baseQueryWithReauth,
-  tagTypes: ["User"],
+  tagTypes: ["User", "Chat", "Message"],
   endpoints: (builder) => ({
     register: builder.mutation<AuthResponse, RegisterRequest>({
       query: (body) => ({
@@ -112,6 +114,61 @@ export const authApi = createApi({
         }
       },
     }),
+    getUsers: builder.query<User[], void>({
+      query: () => "/users",
+      transformResponse: (response: UsersListResponse) => response.data,
+      providesTags: ["User"],
+    }),
+    uploadAvatar: builder.mutation<User, FormData>({
+      query: (formData) => ({
+        url: "/users/me/avatar",
+        method: "POST",
+        body: formData,
+      }),
+      transformResponse: (response: ApiResponse<User>) => response.data,
+      invalidatesTags: ["User", "Chat"],
+      async onQueryStarted(_arg, { dispatch, queryFulfilled }) {
+        try {
+          const { data } = await queryFulfilled;
+          dispatch(setCredentials(data));
+        } catch {
+          // Keep existing credentials on failure.
+        }
+      },
+    }),
+    removeAvatar: builder.mutation<User, void>({
+      query: () => ({
+        url: "/users/me/avatar",
+        method: "DELETE",
+      }),
+      transformResponse: (response: ApiResponse<User>) => response.data,
+      invalidatesTags: ["User", "Chat"],
+      async onQueryStarted(_arg, { dispatch, queryFulfilled }) {
+        try {
+          const { data } = await queryFulfilled;
+          dispatch(setCredentials(data));
+        } catch {
+          // Keep existing credentials on failure.
+        }
+      },
+    }),
+    updateProfile: builder.mutation<User, UpdateProfileRequest>({
+      query: (body) => ({
+        url: "/users/me/profile",
+        method: "PATCH",
+        body,
+      }),
+      transformResponse: (response: ApiResponse<User>) => response.data,
+      invalidatesTags: ["User", "Chat"],
+      async onQueryStarted(_arg, { dispatch, queryFulfilled }) {
+        try {
+          const { data } = await queryFulfilled;
+          dispatch(setCredentials(data));
+        } catch {
+          // Keep existing credentials on failure.
+        }
+      },
+    }),
   }),
 });
 
@@ -120,4 +177,8 @@ export const {
   useLoginMutation,
   useLogoutMutation,
   useGetMeQuery,
+  useGetUsersQuery,
+  useUploadAvatarMutation,
+  useRemoveAvatarMutation,
+  useUpdateProfileMutation,
 } = authApi;

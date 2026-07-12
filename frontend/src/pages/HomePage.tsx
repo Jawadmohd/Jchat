@@ -1,66 +1,52 @@
-import { useNavigate } from "react-router-dom";
-import toast from "react-hot-toast";
-import Logo from "../components/Logo";
-import { useLogoutMutation } from "../features/auth/authApi";
-import { useAuth } from "../hooks/useAuth";
-import { getErrorMessage } from "../utils/getErrorMessage";
+import ChatsView from "../components/chat/ChatsView";
+import NavRail from "../components/chat/NavRail";
+import SettingsPanel from "../components/chat/SettingsPanel";
+import StatusPanel from "../components/chat/StatusPanel";
+import { useHomePage } from "../hooks/useHomePage";
 
 export default function HomePage() {
-  const navigate = useNavigate();
-  const { user } = useAuth();
-  const [logout, { isLoading }] = useLogoutMutation();
-
-  const handleLogout = async () => {
-    try {
-      const response = await logout().unwrap();
-      toast.success(response.message);
-      navigate("/login", { replace: true });
-    } catch (error) {
-      toast.error(getErrorMessage(error, "Logout failed"));
-    }
-  };
+  const {
+    activeTab,
+    isLoggingOut,
+    hideMobileNav,
+    handleTabChange,
+    handleLogout,
+    ...chatsViewProps
+  } = useHomePage();
 
   return (
-    <div className="min-h-screen bg-primary text-secondary">
-      <header className="flex items-center justify-between border-b border-secondary px-6 py-5 md:px-8">
-        <Logo compact />
-        <button
-          className="rounded-2xl border border-secondary/10 bg-primary px-4 py-2.5 text-sm font-semibold transition hover:bg-tertiary disabled:cursor-not-allowed disabled:opacity-70"
-          type="button"
-          onClick={handleLogout}
-          disabled={isLoading}
-        >
-          {isLoading ? "Logging out..." : "Logout"}
-        </button>
-      </header>
+    <div className="flex h-screen overflow-hidden bg-primary text-secondary">
+      <NavRail
+        activeTab={activeTab}
+        onTabChange={handleTabChange}
+        hideOnMobile={hideMobileNav}
+      />
 
-      <main className="mx-auto max-w-5xl px-6 py-12 md:px-8">
-        <section className="mb-10">
-          <h1 className="text-3xl font-bold tracking-tight md:text-5xl">
-            Hello, {user?.username}
-          </h1>
-          <p className="mt-3 max-w-xl text-base leading-relaxed text-muted md:text-lg">
-            You are signed in. Your conversations and messages will appear here
-            as you build out the app.
-          </p>
-        </section>
-
-        {user && (
-          <section className="max-w-md border border-secondary p-6">
-            <h2 className="mb-4 text-lg font-semibold">Your profile</h2>
-
-            <div className="flex items-center justify-between gap-4 border-b border-secondary/10 py-2.5 text-sm">
-              <span className="text-muted">Username</span>
-              <span className="font-medium">{user.username}</span>
-            </div>
-
-            <div className="flex items-center justify-between gap-4 py-2.5 text-sm">
-              <span className="text-muted">Email</span>
-              <span className="font-medium">{user.emailId}</span>
-            </div>
-          </section>
+      <div
+        className={`flex min-h-0 min-w-0 flex-1 flex-col lg:flex-row ${
+          hideMobileNav ? "pb-0" : "pb-[72px]"
+        } lg:pb-0`}
+      >
+        {activeTab === "chats" && (
+          <ChatsView
+            {...chatsViewProps}
+            isLoggingOut={isLoggingOut}
+            handleLogout={handleLogout}
+          />
         )}
-      </main>
+
+        {activeTab === "status" && (
+          <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+            <StatusPanel />
+          </div>
+        )}
+
+        {activeTab === "settings" && (
+          <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+            <SettingsPanel onLogout={handleLogout} isLoggingOut={isLoggingOut} />
+          </div>
+        )}
+      </div>
     </div>
   );
 }
