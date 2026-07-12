@@ -5,6 +5,7 @@ export interface IMessage {
   sender: Types.ObjectId;
   content: string;
   readBy: Types.ObjectId[];
+  isEdited: boolean;
 }
 
 export interface IMessageDocument extends IMessage, Document {
@@ -37,6 +38,10 @@ const messageSchema = new Schema<IMessageDocument>(
         ref: "User",
       },
     ],
+    isEdited: {
+      type: Boolean,
+      default: false,
+    },
   },
   { timestamps: true }
 );

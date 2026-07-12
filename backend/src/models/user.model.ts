@@ -4,6 +4,8 @@ export interface IUser {
   emailId: string;
   username: string;
   password: string;
+  avatarUrl?: string | null;
+  avatarPublicId?: string | null;
 }
 
 export interface IUserDocument extends IUser, Document {
@@ -33,6 +35,15 @@ const userSchema = new Schema<IUserDocument>(
       type: String,
       required: [true, "Password is required"],
       minlength: [6, "Password must be at least 6 characters"],
+      select: false,
+    },
+    avatarUrl: {
+      type: String,
+      default: null,
+    },
+    avatarPublicId: {
+      type: String,
+      default: null,
       select: false,
     },
   },

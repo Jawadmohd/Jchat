@@ -1,0 +1,20 @@
+import Joi from "joi";
+
+export const createMessageSchema = Joi.object({
+  content: Joi.string().trim().min(1).max(5000).required().messages({
+    "string.empty": "Message cannot be empty",
+    "any.required": "Message content is required",
+  }),
+});
+
+export const updateMessageSchema = Joi.object({
+  content: Joi.string().trim().min(1).max(5000).required().messages({
+    "string.empty": "Message cannot be empty",
+    "any.required": "Message content is required",
+  }),
+});
+
+export const listMessagesSchema = Joi.object({
+  limit: Joi.number().integer().min(1).max(100).default(50),
+  before: Joi.date().iso().optional(),
+});
