@@ -9,6 +9,7 @@ export interface IUser {
   avatarPublicId?: string | null;
   lastSeen?: Date | null;
   pinnedChatIds: Types.ObjectId[];
+  identityPublicKey?: string | null;
 }
 
 export interface IUserDocument extends IUser, Document {
@@ -67,6 +68,10 @@ const userSchema = new Schema<IUserDocument>(
         },
       ],
       default: [],
+    },
+    identityPublicKey: {
+      type: String,
+      default: null,
     },
   },
   { timestamps: true }

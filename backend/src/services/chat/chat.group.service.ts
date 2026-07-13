@@ -58,7 +58,7 @@ export const createGroupChat = async (
     adminIds: [userId],
   });
 
-  await chat.populate("participants", "username name emailId avatarUrl");
+  await chat.populate("participants", "username name emailId avatarUrl identityPublicKey");
 
   return toPublicChat(chat, userId, 0);
 };

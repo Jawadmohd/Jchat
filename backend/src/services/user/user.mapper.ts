@@ -6,6 +6,7 @@ export const toPublicUser = (user: IUserDocument) => ({
   username: user.username,
   name: user.name?.trim() || user.username,
   avatarUrl: user.avatarUrl ?? null,
+  identityPublicKey: user.identityPublicKey ?? null,
   lastSeen: user.lastSeen ? user.lastSeen.toISOString() : null,
   createdAt: user.createdAt,
   updatedAt: user.updatedAt,

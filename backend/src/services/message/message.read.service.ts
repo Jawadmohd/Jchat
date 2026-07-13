@@ -76,7 +76,7 @@ export const getMessageReadReceipts = async (
   await assertChatParticipant(chatId, userId);
 
   const chat = await Chat.findOne({ _id: chatId, participants: userId })
-    .populate("participants", "username name emailId avatarUrl")
+    .populate("participants", "username name emailId avatarUrl identityPublicKey")
     .lean();
 
   if (!chat) {

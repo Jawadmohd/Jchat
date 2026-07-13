@@ -8,6 +8,9 @@ import { toPublicMessage } from "./message.mapper";
 
 interface CreateMessageInput {
   content?: string;
+  ciphertext?: string;
+  iv?: string;
+  isEncrypted?: boolean;
   messageType?: MessageType;
   attachmentUrl?: string;
   attachmentName?: string;
@@ -38,9 +41,14 @@ export const createMessage = async (
     typeof input === "string" ? { content: input, messageType: "text" } : input;
 
   const messageType = payload.messageType ?? "text";
+  const isEncrypted = payload.isEncrypted ?? false;
   const content = payload.content?.trim() ?? "";
 
-  if (messageType === "text" && !content && !payload.replyToMessageId) {
+  if (isEncrypted) {
+    if (!payload.ciphertext || !payload.iv) {
+      throw new ApiError(400, "Encrypted messages require ciphertext and iv");
+    }
+  } else if (messageType === "text" && !content && !payload.replyToMessageId) {
     throw new ApiError(400, "Message content is required");
   }
 
@@ -62,7 +70,10 @@ export const createMessage = async (
   const message = await Message.create({
     chat: chatId,
     sender: userId,
-    content,
+    content: isEncrypted ? "" : content,
+    ciphertext: isEncrypted ? payload.ciphertext : null,
+    iv: isEncrypted ? payload.iv : null,
+    isEncrypted,
     messageType,
     attachmentUrl: payload.attachmentUrl ?? null,
     attachmentName: payload.attachmentName ?? null,
@@ -75,6 +86,7 @@ export const createMessage = async (
   await Chat.findByIdAndUpdate(chatId, {
     lastMessage: message._id,
     updatedAt: new Date(),
+    e2eeEnabled: true,
   });
 
   await populateMessage(message);
@@ -128,15 +140,39 @@ export const getPinnedMessagesByChat = async (chatId: string, userId: string) =>
   return messages.map((message) => toPublicMessage(message));
 };
 
+interface UpdateMessageInput {
+  content?: string;
+  ciphertext?: string;
+  iv?: string;
+  isEncrypted?: boolean;
+}
+
 export const updateMessage = async (
   messageId: string,
   chatId: string,
   userId: string,
-  content: string
+  input: UpdateMessageInput | string
 ) => {
   const message = await getOwnedMessage(messageId, chatId, userId);
+  const payload: UpdateMessageInput =
+    typeof input === "string" ? { content: input } : input;
 
-  message.content = content.trim();
+  if (payload.isEncrypted) {
+    if (!payload.ciphertext || !payload.iv) {
+      throw new ApiError(400, "Encrypted messages require ciphertext and iv");
+    }
+
+    message.content = "";
+    message.ciphertext = payload.ciphertext;
+    message.iv = payload.iv;
+    message.isEncrypted = true;
+  } else {
+    message.content = (payload.content ?? "").trim();
+    message.ciphertext = null;
+    message.iv = null;
+    message.isEncrypted = false;
+  }
+
   message.isEdited = true;
   await message.save();
   await populateMessage(message);

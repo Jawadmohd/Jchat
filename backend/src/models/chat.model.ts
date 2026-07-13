@@ -2,6 +2,13 @@ import { Schema, model, type Document, type Model, type Types } from "mongoose";
 
 export type ChatType = "direct" | "group";
 
+export interface IE2EEWrappedKey {
+  userId: Types.ObjectId;
+  wrappedKey: string;
+  iv: string;
+  ephemeralPublicKey: string;
+}
+
 export interface IChat {
   name?: string;
   type: ChatType;
@@ -9,6 +16,8 @@ export interface IChat {
   createdBy?: Types.ObjectId | null;
   adminIds: Types.ObjectId[];
   lastMessage?: Types.ObjectId;
+  e2eeEnabled?: boolean;
+  e2eeWrappedKeys?: IE2EEWrappedKey[];
 }
 
 export interface IChatDocument extends IChat, Document {
@@ -50,6 +59,34 @@ const chatSchema = new Schema<IChatDocument>(
     lastMessage: {
       type: Schema.Types.ObjectId,
       ref: "Message",
+    },
+    e2eeEnabled: {
+      type: Boolean,
+      default: true,
+    },
+    e2eeWrappedKeys: {
+      type: [
+        {
+          userId: {
+            type: Schema.Types.ObjectId,
+            ref: "User",
+            required: true,
+          },
+          wrappedKey: {
+            type: String,
+            required: true,
+          },
+          iv: {
+            type: String,
+            required: true,
+          },
+          ephemeralPublicKey: {
+            type: String,
+            required: true,
+          },
+        },
+      ],
+      default: [],
     },
   },
   { timestamps: true }

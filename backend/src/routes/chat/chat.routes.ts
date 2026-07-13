@@ -11,6 +11,7 @@ import {
   removeMember,
   renameGroup,
   unpinUserChat,
+  upsertE2EEKeys,
 } from "../../controllers/chat/chat.controller";
 import {
   editMessage,
@@ -38,6 +39,7 @@ import {
   listMessagesSchema,
   toggleReactionSchema,
   updateMessageSchema,
+  upsertWrappedKeysSchema,
 } from "../../validators/message.validator";
 
 const router = Router();
@@ -61,6 +63,7 @@ router.patch("/:chatId", authenticate, validate(updateGroupNameSchema), renameGr
 router.post("/:chatId/members", authenticate, validate(addGroupMembersSchema), addMembers);
 router.delete("/:chatId/members/:memberId", authenticate, removeMember);
 router.post("/:chatId/leave", authenticate, leaveGroupChat);
+router.put("/:chatId/e2ee-keys", authenticate, validate(upsertWrappedKeysSchema), upsertE2EEKeys);
 router.post("/:chatId/messages/:messageId/pin", authenticate, pinChatMessage);
 router.delete("/:chatId/messages/:messageId/pin", authenticate, unpinChatMessage);
 router.post(

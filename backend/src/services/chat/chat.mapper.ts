@@ -3,10 +3,10 @@ import type { PopulatedLastMessage, PopulatedUser } from "../../types/populated.
 import { getMessagePreview } from "../message/message.mapper";
 
 export const CHAT_POPULATE_OPTIONS = [
-  { path: "participants", select: "username name emailId avatarUrl" },
+  { path: "participants", select: "username name emailId avatarUrl identityPublicKey" },
   {
     path: "lastMessage",
-    select: "content messageType attachmentName sender createdAt",
+    select: "content messageType attachmentName sender createdAt isEncrypted ciphertext iv",
     populate: { path: "sender", select: "username name emailId avatarUrl" },
   },
 ] as const;
@@ -20,6 +20,7 @@ export const toPublicUser = (
   name: user.name?.trim() || user.username,
   emailId: user.emailId,
   avatarUrl: user.avatarUrl ?? null,
+  identityPublicKey: user.identityPublicKey ?? null,
   isOnline: presence?.isOnline ?? false,
   lastSeen: presence?.lastSeen ?? null,
 });
@@ -73,9 +74,24 @@ export const toPublicChat = (
       content: getMessagePreview(lastMessageDoc),
       messageType: lastMessageDoc.messageType ?? "text",
       senderId,
+      senderName:
+        typeof lastMessageDoc.sender === "object" && "username" in lastMessageDoc.sender
+          ? lastMessageDoc.sender.name?.trim() || lastMessageDoc.sender.username
+          : null,
       createdAt: lastMessageDoc.createdAt,
+      isEncrypted: lastMessageDoc.isEncrypted ?? false,
+      ciphertext: lastMessageDoc.ciphertext ?? null,
+      iv: lastMessageDoc.iv ?? null,
+      attachmentName: lastMessageDoc.attachmentName ?? null,
     };
   }
+
+  const e2eeWrappedKeys = (chat.e2eeWrappedKeys ?? []).map((entry) => ({
+    userId: entry.userId.toString(),
+    wrappedKey: entry.wrappedKey,
+    iv: entry.iv,
+    ephemeralPublicKey: entry.ephemeralPublicKey,
+  }));
 
   return {
     id: chat._id.toString(),
@@ -87,6 +103,8 @@ export const toPublicChat = (
     createdBy: chat.createdBy?.toString() ?? null,
     adminIds,
     isAdmin: chat.type === "group" ? adminIds.includes(currentUserId) : false,
+    e2eeEnabled: chat.e2eeEnabled ?? true,
+    e2eeWrappedKeys,
     lastMessage,
     unreadCount,
     isPinned,

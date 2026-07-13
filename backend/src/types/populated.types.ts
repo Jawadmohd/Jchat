@@ -7,6 +7,7 @@ export interface PopulatedUser {
   name?: string;
   emailId: string;
   avatarUrl?: string | null;
+  identityPublicKey?: string | null;
 }
 
 export interface PopulatedReplyMessage {
@@ -14,6 +15,9 @@ export interface PopulatedReplyMessage {
   content: string;
   messageType: MessageType;
   attachmentName?: string | null;
+  isEncrypted?: boolean;
+  ciphertext?: string | null;
+  iv?: string | null;
   sender: PopulatedUser | Types.ObjectId;
 }
 
@@ -22,6 +26,9 @@ export interface PopulatedLastMessage {
   content: string;
   messageType: MessageType;
   attachmentName?: string | null;
+  isEncrypted?: boolean;
+  ciphertext?: string | null;
+  iv?: string | null;
   sender: PopulatedUser | { toString(): string };
   createdAt: Date;
 }

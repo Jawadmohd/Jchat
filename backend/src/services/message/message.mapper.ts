@@ -2,6 +2,8 @@ import { Types } from "mongoose";
 import type { IMessageDocument, MessageType } from "../../models";
 import type { PopulatedReplyMessage, PopulatedUser } from "../../types/populated.types";
 
+export const ENCRYPTED_MESSAGE_PREVIEW = "Encrypted message";
+
 type LegacyReadByEntry = Types.ObjectId | { userId?: Types.ObjectId; readAt?: Date };
 
 export const normalizeReadReceipts = (message: IMessageDocument) => {
@@ -45,15 +47,19 @@ const toPublicReply = (replyMessage: PopulatedReplyMessage | null | undefined) =
 
   return {
     id: replyMessage._id.toString(),
-    content: replyMessage.content,
+    content: replyMessage.isEncrypted ? "" : replyMessage.content,
     messageType: replyMessage.messageType,
     attachmentName: replyMessage.attachmentName ?? null,
+    isEncrypted: replyMessage.isEncrypted ?? false,
+    ciphertext: replyMessage.ciphertext ?? null,
+    iv: replyMessage.iv ?? null,
     sender: {
       id: sender._id.toString(),
       username: sender.username,
       name: sender.name?.trim() || sender.username,
       emailId: sender.emailId,
       avatarUrl: sender.avatarUrl ?? null,
+      identityPublicKey: sender.identityPublicKey ?? null,
     },
   };
 };
@@ -62,6 +68,7 @@ export const toPublicMessage = (message: IMessageDocument) => {
   const sender = message.sender as unknown as PopulatedUser;
   const replyTo = message.replyTo as unknown as PopulatedReplyMessage | null | undefined;
   const readReceipts = normalizeReadReceipts(message);
+  const isEncrypted = message.isEncrypted ?? false;
 
   const reactions = (message.reactions ?? []).map((reaction) => ({
     emoji: reaction.emoji,
@@ -77,8 +84,12 @@ export const toPublicMessage = (message: IMessageDocument) => {
       name: sender.name?.trim() || sender.username,
       emailId: sender.emailId,
       avatarUrl: sender.avatarUrl ?? null,
+      identityPublicKey: sender.identityPublicKey ?? null,
     },
-    content: message.content,
+    content: isEncrypted ? "" : message.content,
+    ciphertext: message.ciphertext ?? null,
+    iv: message.iv ?? null,
+    isEncrypted,
     messageType: message.messageType,
     attachmentUrl: message.attachmentUrl ?? null,
     attachmentName: message.attachmentName ?? null,
@@ -100,7 +111,12 @@ export const getMessagePreview = (message: {
   content: string;
   messageType: MessageType;
   attachmentName?: string | null;
+  isEncrypted?: boolean;
 }) => {
+  if (message.isEncrypted) {
+    return ENCRYPTED_MESSAGE_PREVIEW;
+  }
+
   if (message.messageType === "image") {
     return message.content.trim() || "Photo";
   }

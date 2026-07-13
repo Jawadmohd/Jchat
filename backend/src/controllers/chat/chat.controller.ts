@@ -10,6 +10,7 @@ import {
   removeGroupMember,
   unpinChat,
   updateGroupName,
+  upsertChatWrappedKeys,
 } from "../../services/chat/chat.service";
 import { markMessagesAsRead } from "../../services/message/message.service";
 import { asyncHandler } from "../../utils";
@@ -151,5 +152,18 @@ export const leaveGroupChat = asyncHandler(async (req: Request, res: Response) =
     success: true,
     message: "Left group",
     data: result,
+  });
+});
+
+export const upsertE2EEKeys = asyncHandler(async (req: Request, res: Response) => {
+  const chatId = String(req.params.chatId);
+  const chat = await upsertChatWrappedKeys(chatId, req.user!.id, req.body.wrappedKeys);
+
+  emitChatUpdated(chatId, chat);
+
+  res.status(200).json({
+    success: true,
+    message: "E2EE keys updated",
+    data: chat,
   });
 });

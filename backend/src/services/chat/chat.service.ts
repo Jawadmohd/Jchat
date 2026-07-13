@@ -8,3 +8,4 @@ export {
   leaveGroup,
 } from "./chat.group.service";
 export { pinChat, unpinChat } from "./chat.pin.service";
+export { upsertChatWrappedKeys } from "./chat.e2ee.service";

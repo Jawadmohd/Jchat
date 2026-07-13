@@ -8,6 +8,7 @@ import {
   loginUser,
   registerUser,
   searchUsers,
+  setIdentityPublicKey,
   setUserAvatar,
   updateUser,
 } from "../../services/user/user.service";
@@ -116,6 +117,16 @@ export const updateMyProfile = asyncHandler(async (req: Request, res: Response) 
   res.status(200).json({
     success: true,
     message: "Profile updated successfully",
+    data: user,
+  });
+});
+
+export const uploadIdentityKey = asyncHandler(async (req: Request, res: Response) => {
+  const user = await setIdentityPublicKey(req.user!.id, req.body.identityPublicKey);
+
+  res.status(200).json({
+    success: true,
+    message: "Identity key uploaded",
     data: user,
   });
 });

@@ -16,6 +16,9 @@ export interface IMessage {
   chat: Types.ObjectId;
   sender: Types.ObjectId;
   content: string;
+  ciphertext?: string | null;
+  iv?: string | null;
+  isEncrypted?: boolean;
   messageType: MessageType;
   attachmentUrl?: string | null;
   attachmentName?: string | null;
@@ -53,6 +56,18 @@ const messageSchema = new Schema<IMessageDocument>(
       default: "",
       trim: true,
       maxlength: [5000, "Message cannot exceed 5000 characters"],
+    },
+    ciphertext: {
+      type: String,
+      default: null,
+    },
+    iv: {
+      type: String,
+      default: null,
+    },
+    isEncrypted: {
+      type: Boolean,
+      default: false,
     },
     messageType: {
       type: String,

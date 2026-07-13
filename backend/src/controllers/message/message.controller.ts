@@ -51,6 +51,9 @@ export const sendMessage = asyncHandler(async (req: Request, res: Response) => {
   const chatId = String(req.params.chatId);
   const message = await createMessage(chatId, req.user!.id, {
     content: req.body.content,
+    ciphertext: req.body.ciphertext,
+    iv: req.body.iv,
+    isEncrypted: req.body.isEncrypted,
     replyToMessageId: req.body.replyToMessageId,
   });
 
@@ -85,6 +88,9 @@ export const sendAttachment = asyncHandler(async (req: Request, res: Response) =
     attachmentMimeType: upload.mimeType,
     attachmentSize: upload.size,
     replyToMessageId,
+    isEncrypted: req.body.isEncrypted === true || req.body.isEncrypted === "true",
+    ciphertext: typeof req.body.ciphertext === "string" ? req.body.ciphertext : undefined,
+    iv: typeof req.body.iv === "string" ? req.body.iv : undefined,
   });
 
   emitNewMessage(chatId, message);
@@ -103,7 +109,14 @@ export const editMessage = asyncHandler(async (req: Request, res: Response) => {
     messageId,
     chatId,
     req.user!.id,
-    req.body.content
+    req.body.isEncrypted
+      ? {
+          isEncrypted: true,
+          ciphertext: req.body.ciphertext,
+          iv: req.body.iv,
+          content: req.body.content,
+        }
+      : req.body.content
   );
 
   emitMessageUpdated(chatId, message);

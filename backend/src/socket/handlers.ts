@@ -52,6 +52,9 @@ export const registerSocketHandlers = (io: Server) => {
         {
           chatId,
           content,
+          ciphertext,
+          iv,
+          isEncrypted,
           messageType,
           attachmentUrl,
           attachmentName,
@@ -61,6 +64,9 @@ export const registerSocketHandlers = (io: Server) => {
         }: {
           chatId: string;
           content?: string;
+          ciphertext?: string;
+          iv?: string;
+          isEncrypted?: boolean;
           messageType?: "text" | "image" | "file";
           attachmentUrl?: string;
           attachmentName?: string;
@@ -78,6 +84,9 @@ export const registerSocketHandlers = (io: Server) => {
 
           const message = await createMessage(chatId, user.id, {
             content,
+            ciphertext,
+            iv,
+            isEncrypted,
             messageType: messageType ?? "text",
             attachmentUrl,
             attachmentName,

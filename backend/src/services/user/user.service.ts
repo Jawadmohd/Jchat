@@ -7,3 +7,4 @@ export {
   deleteUser,
 } from "./user.profile.service";
 export { setUserAvatar, clearUserAvatar, getUserAvatarMeta } from "./user.avatar.service";
+export { setIdentityPublicKey } from "./user.keys.service";

@@ -44,7 +44,7 @@ export const getOrCreateDirectChat = async (
     participants: [userId, participantId],
   });
 
-  await chat.populate("participants", "username name emailId avatarUrl");
+  await chat.populate("participants", "username name emailId avatarUrl identityPublicKey");
 
   return toPublicChat(chat, userId, 0);
 };

@@ -12,6 +12,7 @@ import {
   updateMyProfile,
   updateUserById,
   uploadAvatar,
+  uploadIdentityKey,
 } from "../../controllers/user/user.controller";
 import { authenticate } from "../../middlewares/auth.middleware";
 import { optionalAuthenticate } from "../../middlewares/optionalAuth.middleware";
@@ -24,6 +25,7 @@ import {
   searchUsersSchema,
   updateUserSchema,
 } from "../../validators/user.validator";
+import { identityKeySchema } from "../../validators/e2ee.validator";
 
 const router = Router();
 
@@ -33,6 +35,7 @@ router.post("/logout", logout);
 
 router.get("/me", authenticate, getMe);
 router.patch("/me/profile", authenticate, validate(updateUserSchema), updateMyProfile);
+router.put("/me/identity-key", authenticate, validate(identityKeySchema), uploadIdentityKey);
 router.post(
   "/me/avatar",
   authenticate,
