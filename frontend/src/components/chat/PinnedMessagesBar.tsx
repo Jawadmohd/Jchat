@@ -35,6 +35,7 @@ export default function PinnedMessagesBar({ messages, currentUserId }: PinnedMes
               content: latest.content,
               messageType: latest.messageType,
               attachmentName: latest.attachmentName,
+              isEncrypted: latest.isEncrypted,
               sender: latest.sender,
             })}
           </p>

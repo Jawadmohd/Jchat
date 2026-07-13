@@ -21,14 +21,44 @@ export const navItems: NavItem[] = [
 interface NavRailProps {
   activeTab: NavTab;
   onTabChange: (tab: NavTab) => void;
-  hideOnMobile?: boolean;
+  variant?: "desktop" | "mobile";
 }
 
 export default function NavRail({
   activeTab,
   onTabChange,
-  hideOnMobile = false,
+  variant = "desktop",
 }: NavRailProps) {
+  if (variant === "mobile") {
+    return (
+      <nav
+        className="flex shrink-0 border-t border-secondary/10 bg-primary px-2 pb-[env(safe-area-inset-bottom)] lg:hidden"
+        aria-label="Main navigation"
+      >
+        {navItems.map((item) => {
+          const Icon = item.icon;
+          const isActive = activeTab === item.id;
+
+          return (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => onTabChange(item.id)}
+              aria-label={item.label}
+              aria-current={isActive ? "page" : undefined}
+              className={`flex flex-1 flex-col items-center gap-0.5 py-2.5 text-[11px] font-medium transition ${
+                isActive ? "text-secondary" : "text-muted"
+              }`}
+            >
+              <Icon className={`h-6 w-6 ${isActive ? "text-secondary" : "text-muted"}`} />
+              <span>{item.label}</span>
+            </button>
+          );
+        })}
+      </nav>
+    );
+  }
+
   return (
     <>
       {/* Large screens: narrow left rail */}
@@ -64,35 +94,6 @@ export default function NavRail({
             );
           })}
         </div>
-      </nav>
-
-      {/* Mobile & tablet: bottom navigation */}
-      <nav
-        className={`fixed inset-x-0 bottom-0 z-30 border-t border-secondary/10 bg-primary px-2 pb-[env(safe-area-inset-bottom)] lg:hidden ${
-          hideOnMobile ? "hidden" : "flex"
-        }`}
-        aria-label="Main navigation"
-      >
-        {navItems.map((item) => {
-          const Icon = item.icon;
-          const isActive = activeTab === item.id;
-
-          return (
-            <button
-              key={item.id}
-              type="button"
-              onClick={() => onTabChange(item.id)}
-              aria-label={item.label}
-              aria-current={isActive ? "page" : undefined}
-              className={`flex flex-1 flex-col items-center gap-0.5 py-2.5 text-[11px] font-medium transition ${
-                isActive ? "text-secondary" : "text-muted"
-              }`}
-            >
-              <Icon className={`h-6 w-6 ${isActive ? "text-secondary" : "text-muted"}`} />
-              <span>{item.label}</span>
-            </button>
-          );
-        })}
       </nav>
     </>
   );

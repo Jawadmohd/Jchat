@@ -68,12 +68,14 @@ export default function ChatMainPanel({
 
   if (selectedChat && selectedChatId && !isMobileLayout) {
     return (
-      <ChatConversation
-        chatId={selectedChatId}
-        chat={selectedChat}
-        onBack={onBackToList}
-        onLeftGroup={onLeftGroup}
-      />
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+        <ChatConversation
+          chatId={selectedChatId}
+          chat={selectedChat}
+          onBack={onBackToList}
+          onLeftGroup={onLeftGroup}
+        />
+      </div>
     );
   }
 
@@ -101,7 +103,7 @@ export function ChatMainPanelContainer({
 
   return (
     <main
-      className={`min-h-0 min-w-0 flex-1 flex-col ${className}`}
+      className={`flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden ${className}`}
       style={usePatternBackground ? CHAT_BACKGROUND_STYLE : undefined}
     >
       <ChatMainPanel

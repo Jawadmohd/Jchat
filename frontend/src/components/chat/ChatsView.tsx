@@ -53,7 +53,7 @@ export default function ChatsView() {
       </div>
 
       {showMobileConversation && selectedChat && selectedChatId && (
-        <main className="flex h-full min-h-0 min-w-0 flex-1 flex-col lg:hidden">
+        <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden lg:hidden">
           <ChatConversation
             chatId={selectedChatId}
             chat={selectedChat}

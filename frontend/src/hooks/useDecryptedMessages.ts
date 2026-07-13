@@ -30,15 +30,35 @@ const mergeDecryptedContent = (source: Message[], decrypted: Message[]) => {
   return source.map((message) => {
     const decryptedMessage = decryptedById.get(message.id);
 
-    if (!decryptedMessage || !message.isEncrypted) {
+    if (!decryptedMessage) {
       return message;
     }
 
-    return {
-      ...message,
-      content: decryptedMessage.content,
-      replyTo: decryptedMessage.replyTo,
-    };
+    let next = message;
+
+    if (message.isEncrypted && decryptedMessage.content !== message.content) {
+      next = { ...next, content: decryptedMessage.content };
+    }
+
+    const decryptedReplyContent = decryptedMessage.replyTo?.content?.trim();
+    const currentReplyContent = message.replyTo?.content?.trim();
+
+    if (
+      message.replyTo &&
+      decryptedMessage.replyTo &&
+      decryptedReplyContent &&
+      decryptedReplyContent !== currentReplyContent
+    ) {
+      next = {
+        ...next,
+        replyTo: {
+          ...message.replyTo,
+          content: decryptedMessage.replyTo.content,
+        },
+      };
+    }
+
+    return next;
   });
 };
 

@@ -24,12 +24,14 @@
 }
 
 @layer base {
-  body {
-    @apply min-h-screen bg-primary font-sans text-secondary antialiased;
+  html,
+  body,
+  #root {
+    @apply h-dvh overflow-hidden;
   }
 
-  #root {
-    @apply min-h-screen;
+  body {
+    @apply bg-primary font-sans text-secondary antialiased;
   }
 
   button,

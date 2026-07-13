@@ -1,16 +1,36 @@
 import type { Message, MessageReply } from "../types/api";
 import { getUserDisplayName } from "./getUserDisplayName";
 
+const formatPreviewBody = (
+  content: string,
+  messageType: Message["messageType"],
+  attachmentName?: string | null
+) => {
+  const trimmed = content.trim();
+
+  if (messageType === "image") {
+    return trimmed || "Photo";
+  }
+
+  if (messageType === "file") {
+    return trimmed || `File: ${attachmentName ?? "attachment"}`;
+  }
+
+  return content;
+};
+
 export const getReplyPreviewText = (reply: MessageReply): string => {
-  if (reply.messageType === "image") {
-    return reply.content.trim() || "Photo";
+  const formatted = formatPreviewBody(reply.content, reply.messageType, reply.attachmentName);
+
+  if (formatted.trim()) {
+    return formatted;
   }
 
-  if (reply.messageType === "file") {
-    return reply.content.trim() || `File: ${reply.attachmentName ?? "attachment"}`;
+  if (reply.isEncrypted) {
+    return "Encrypted message";
   }
 
-  return reply.content;
+  return formatted;
 };
 
 export const getReplyLabel = (reply: MessageReply, currentUserId?: string): string => {
@@ -21,17 +41,20 @@ export const getReplyLabel = (reply: MessageReply, currentUserId?: string): stri
 };
 
 export const getMessagePreviewText = (message: Message): string => {
+  const formatted = formatPreviewBody(
+    message.content,
+    message.messageType,
+    message.attachmentName
+  );
+
+  if (formatted.trim()) {
+    return formatted;
+  }
+
   if (message.isEncrypted) {
     return "Encrypted message";
   }
 
-  if (message.messageType === "image") {
-    return message.content.trim() || "Photo";
-  }
-
-  if (message.messageType === "file") {
-    return message.content.trim() || `File: ${message.attachmentName ?? "attachment"}`;
-  }
-
-  return message.content;
+  return formatted;
 };
+

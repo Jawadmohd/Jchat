@@ -9,30 +9,28 @@ function HomePageContent() {
   const { activeTab, isLoggingOut, hideMobileNav, handleTabChange, handleLogout } = useChatUI();
 
   return (
-    <div className="flex h-screen overflow-hidden bg-primary text-secondary">
-      <NavRail
-        activeTab={activeTab}
-        onTabChange={handleTabChange}
-        hideOnMobile={hideMobileNav}
-      />
+    <div className="flex h-dvh overflow-hidden bg-primary text-secondary lg:flex-row">
+      <NavRail activeTab={activeTab} onTabChange={handleTabChange} variant="desktop" />
 
-      <div
-        className={`flex min-h-0 min-w-0 flex-1 flex-col lg:flex-row ${
-          hideMobileNav ? "pb-0" : "pb-[72px]"
-        } lg:pb-0`}
-      >
-        {activeTab === "chats" && <ChatsView />}
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col lg:flex-row">
+          {activeTab === "chats" && <ChatsView />}
 
-        {activeTab === "status" && (
-          <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
-            <StatusPanel />
-          </div>
-        )}
+          {activeTab === "status" && (
+            <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+              <StatusPanel />
+            </div>
+          )}
 
-        {activeTab === "settings" && (
-          <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
-            <SettingsPanel onLogout={handleLogout} isLoggingOut={isLoggingOut} />
-          </div>
+          {activeTab === "settings" && (
+            <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+              <SettingsPanel onLogout={handleLogout} isLoggingOut={isLoggingOut} />
+            </div>
+          )}
+        </div>
+
+        {!hideMobileNav && (
+          <NavRail activeTab={activeTab} onTabChange={handleTabChange} variant="mobile" />
         )}
       </div>
     </div>

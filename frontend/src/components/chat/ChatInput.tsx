@@ -28,6 +28,13 @@ export default function ChatInput({
   const [content, setContent] = useState("");
   const [isSending, setIsSending] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const focusInput = () => {
+    requestAnimationFrame(() => {
+      inputRef.current?.focus();
+    });
+  };
 
   const canSend = content.trim().length > 0 && !disabled && !isSending;
 
@@ -47,6 +54,7 @@ export default function ChatInput({
       onCancelReply?.();
     } finally {
       setIsSending(false);
+      focusInput();
     }
   };
 
@@ -87,11 +95,12 @@ export default function ChatInput({
     } finally {
       setIsSending(false);
       event.target.value = "";
+      focusInput();
     }
   };
 
   return (
-    <footer className="shrink-0 border-t border-secondary/10 bg-tertiary px-3 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] md:px-4">
+    <footer className="shrink-0 border-t border-secondary/10 bg-tertiary px-3 py-3 max-lg:pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] md:px-4">
       {replyingTo && (
         <div className="mb-2 flex items-start gap-2 rounded-xl bg-primary px-3 py-2">
           <div className="min-w-0 flex-1 border-l-2 border-secondary/30 pl-2.5">
@@ -126,13 +135,14 @@ export default function ChatInput({
 
         <div className="flex min-h-[44px] flex-1 items-center rounded-2xl bg-primary px-4 py-2.5">
           <input
+            ref={inputRef}
             type="text"
             value={content}
             onChange={(event) => handleChange(event.target.value)}
             onKeyDown={handleKeyDown}
             onBlur={onTypingStop}
             placeholder={replyingTo ? "Reply..." : "Type a message"}
-            disabled={disabled || isSending}
+            disabled={disabled}
             className="w-full bg-transparent text-sm text-secondary outline-none placeholder:text-muted disabled:cursor-not-allowed"
           />
         </div>
@@ -140,6 +150,7 @@ export default function ChatInput({
         <button
           type="submit"
           disabled={!canSend}
+          onMouseDown={(event) => event.preventDefault()}
           className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-secondary text-primary transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
           aria-label="Send message"
         >

@@ -323,38 +323,42 @@ export const decryptMessageContent = async (
 export const decryptMessages = async (messages: Message[], chat: Chat, userId: string) =>
   Promise.all(
     messages.map(async (message) => {
-      if (!message.isEncrypted) {
-        return message;
-      }
+      const content = message.isEncrypted
+        ? await decryptMessageContent(message, chat, userId)
+        : message.content;
 
-      const content = await decryptMessageContent(message, chat, userId);
-      let replyContent = message.replyTo?.content ?? "";
+      let replyTo = message.replyTo;
 
       if (
         message.replyTo?.isEncrypted &&
         message.replyTo.ciphertext &&
         message.replyTo.iv
       ) {
-        try {
-          const key = await getChatEncryptionKey(chat, userId);
-          if (key) {
-            replyContent = await decryptText(
-              message.replyTo.ciphertext,
-              message.replyTo.iv,
-              key
-            );
-          }
-        } catch {
-          replyContent = "[Unable to decrypt message]";
-        }
-      }
+        let replyContent = message.replyTo.content;
 
-      const replyTo = message.replyTo
-        ? {
-            ...message.replyTo,
-            content: replyContent,
+        if (!replyContent.trim()) {
+          try {
+            const key = await getChatEncryptionKey(chat, userId);
+
+            if (key) {
+              replyContent = await decryptText(
+                message.replyTo.ciphertext,
+                message.replyTo.iv,
+                key
+              );
+            } else {
+              replyContent = "Encrypted message";
+            }
+          } catch {
+            replyContent = "[Unable to decrypt message]";
           }
-        : null;
+        }
+
+        replyTo = {
+          ...message.replyTo,
+          content: replyContent,
+        };
+      }
 
       return {
         ...message,
