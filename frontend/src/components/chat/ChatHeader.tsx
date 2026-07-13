@@ -10,6 +10,7 @@ interface ChatHeaderProps {
   onBack?: () => void;
   showBackButton?: boolean;
   typingUsername?: string | null;
+  onOpenGroupSettings?: () => void;
 }
 
 export default function ChatHeader({
@@ -17,6 +18,7 @@ export default function ChatHeader({
   onBack,
   showBackButton = false,
   typingUsername = null,
+  onOpenGroupSettings,
 }: ChatHeaderProps) {
   const isGroup = chat.type === "group";
   const displayUser = chat.otherParticipant;
@@ -72,7 +74,18 @@ export default function ChatHeader({
 
       <div className="flex items-center gap-1 text-muted">
         {chat.isPinned && <HiMapPin className="h-5 w-5" title="Pinned chat" />}
-        {isGroup && <HiUsers className="h-5 w-5" title="Group chat" />}
+        {isGroup && onOpenGroupSettings && (
+          <button
+            type="button"
+            onClick={onOpenGroupSettings}
+            className="rounded-full p-2 transition hover:bg-primary hover:text-secondary"
+            aria-label="Group settings"
+            title="Group settings"
+          >
+            <HiUsers className="h-5 w-5" />
+          </button>
+        )}
+        {isGroup && !onOpenGroupSettings && <HiUsers className="h-5 w-5" title="Group chat" />}
       </div>
     </header>
   );

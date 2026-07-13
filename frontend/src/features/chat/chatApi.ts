@@ -196,6 +196,70 @@ export const chatApi = authApi.injectEndpoints({
       transformResponse: (response: ChatResponse) => response.data,
       invalidatesTags: [{ type: "Chat", id: "LIST" }],
     }),
+    toggleReaction: builder.mutation<
+      Message,
+      { chatId: string; messageId: string; emoji: string }
+    >({
+      query: ({ chatId, messageId, emoji }) => ({
+        url: `/chats/${chatId}/messages/${messageId}/reactions`,
+        method: "POST",
+        body: { emoji },
+      }),
+      transformResponse: (response: MessageResponse) => response.data,
+    }),
+    renameGroup: builder.mutation<Chat, { chatId: string; name: string }>({
+      query: ({ chatId, name }) => ({
+        url: `/chats/${chatId}`,
+        method: "PATCH",
+        body: { name },
+      }),
+      transformResponse: (response: ChatResponse) => response.data,
+      invalidatesTags: (_result, _error, { chatId }) => [
+        { type: "Chat", id: "LIST" },
+        { type: "Chat", id: chatId },
+      ],
+    }),
+    addGroupMembers: builder.mutation<Chat, { chatId: string; participantIds: string[] }>({
+      query: ({ chatId, participantIds }) => ({
+        url: `/chats/${chatId}/members`,
+        method: "POST",
+        body: { participantIds },
+      }),
+      transformResponse: (response: ChatResponse) => response.data,
+      invalidatesTags: (_result, _error, { chatId }) => [
+        { type: "Chat", id: "LIST" },
+        { type: "Chat", id: chatId },
+      ],
+    }),
+    removeGroupMember: builder.mutation<
+      Chat | { chatId: string; left: boolean },
+      { chatId: string; memberId: string }
+    >({
+      query: ({ chatId, memberId }) => ({
+        url: `/chats/${chatId}/members/${memberId}`,
+        method: "DELETE",
+      }),
+      transformResponse: (
+        response: ApiResponse<Chat | { chatId: string; left: boolean }>
+      ) => response.data,
+      invalidatesTags: (_result, _error, { chatId }) => [
+        { type: "Chat", id: "LIST" },
+        { type: "Chat", id: chatId },
+      ],
+    }),
+    leaveGroup: builder.mutation<{ chatId: string; left: boolean }, string>({
+      query: (chatId) => ({
+        url: `/chats/${chatId}/leave`,
+        method: "POST",
+      }),
+      transformResponse: (
+        response: ApiResponse<{ chatId: string; left: boolean }>
+      ) => response.data,
+      invalidatesTags: (_result, _error, chatId) => [
+        { type: "Chat", id: "LIST" },
+        { type: "Chat", id: chatId },
+      ],
+    }),
   }),
   overrideExisting: false,
 });
@@ -216,4 +280,9 @@ export const {
   useUnpinChatMutation,
   useCreateDirectChatMutation,
   useCreateGroupChatMutation,
+  useToggleReactionMutation,
+  useRenameGroupMutation,
+  useAddGroupMembersMutation,
+  useRemoveGroupMemberMutation,
+  useLeaveGroupMutation,
 } = chatApi;

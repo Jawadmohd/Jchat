@@ -1,53 +1,31 @@
-import type { HomePageState } from "../../hooks/useHomePage";
+import { useChatUI } from "../../contexts/ChatUIContext";
 import ChatConversation from "./ChatConversation";
 import ChatSidebar from "./ChatSidebar";
 import { ChatMainPanelContainer } from "./ChatMainPanel";
 import NewChatOverlay from "./NewChatOverlay";
 
-type ChatsViewProps = Pick<
-  HomePageState,
-  | "chats"
-  | "users"
-  | "isLoadingChats"
-  | "isLoadingUsers"
-  | "isLoggingOut"
-  | "selectedChatId"
-  | "selectedChat"
-  | "mobileShowChat"
-  | "newChatMode"
-  | "showNewChat"
-  | "handleOpenNewChat"
-  | "handleCloseNewChat"
-  | "handleSelectNewChatMode"
-  | "handleBackToNewChatPicker"
-  | "handleSelectChat"
-  | "handleSelectChatById"
-  | "handleChatStarted"
-  | "handleBackToList"
-  | "handleLogout"
->;
+export default function ChatsView() {
+  const {
+    chats,
+    isLoadingChats,
+    isLoggingOut,
+    selectedChatId,
+    selectedChat,
+    mobileShowChat,
+    newChatMode,
+    showNewChat,
+    handleOpenNewChat,
+    handleCloseNewChat,
+    handleSelectNewChatMode,
+    handleBackToNewChatPicker,
+    handleSelectChat,
+    handleSelectChatById,
+    handleChatStarted,
+    handleBackToList,
+    handleLeftGroup,
+    handleLogout,
+  } = useChatUI();
 
-export default function ChatsView({
-  chats,
-  users,
-  isLoadingChats,
-  isLoadingUsers,
-  isLoggingOut,
-  selectedChatId,
-  selectedChat,
-  mobileShowChat,
-  newChatMode,
-  showNewChat,
-  handleOpenNewChat,
-  handleCloseNewChat,
-  handleSelectNewChatMode,
-  handleBackToNewChatPicker,
-  handleSelectChat,
-  handleSelectChatById,
-  handleChatStarted,
-  handleBackToList,
-  handleLogout,
-}: ChatsViewProps) {
   const hideSidebarOnMobile = mobileShowChat && !showNewChat;
   const showMobileConversation = mobileShowChat && !!selectedChat && !showNewChat;
 
@@ -75,6 +53,7 @@ export default function ChatsView({
             chatId={selectedChatId}
             chat={selectedChat}
             onBack={handleBackToList}
+            onLeftGroup={handleLeftGroup}
           />
         </main>
       )}
@@ -84,21 +63,18 @@ export default function ChatsView({
         newChatMode={newChatMode}
         selectedChatId={selectedChatId}
         selectedChat={selectedChat}
-        users={users}
-        isLoadingUsers={isLoadingUsers}
         onCloseNewChat={handleCloseNewChat}
         onSelectNewChatMode={handleSelectNewChatMode}
         onBackToNewChatPicker={handleBackToNewChatPicker}
         onChatStarted={handleChatStarted}
         onSelectChatById={handleSelectChatById}
         onBackToList={handleBackToList}
+        onLeftGroup={handleLeftGroup}
       />
 
       {newChatMode && (
         <NewChatOverlay
           mode={newChatMode}
-          users={users}
-          isLoading={isLoadingUsers}
           onClose={handleCloseNewChat}
           onSelectMode={handleSelectNewChatMode}
           onBackToPicker={handleBackToNewChatPicker}

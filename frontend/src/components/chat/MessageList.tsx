@@ -19,6 +19,7 @@ interface MessageListProps {
   onReplyMessage: (message: Message) => void;
   onPinMessage: (messageId: string) => Promise<void>;
   onUnpinMessage: (messageId: string) => Promise<void>;
+  onToggleReaction: (messageId: string, emoji: string) => Promise<void>;
 }
 
 export default function MessageList({
@@ -33,6 +34,7 @@ export default function MessageList({
   onReplyMessage,
   onPinMessage,
   onUnpinMessage,
+  onToggleReaction,
 }: MessageListProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -139,6 +141,7 @@ export default function MessageList({
                 onReply={onReplyMessage}
                 onPin={onPinMessage}
                 onUnpin={onUnpinMessage}
+                onToggleReaction={onToggleReaction}
               />
             </div>
           );

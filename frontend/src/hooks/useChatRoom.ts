@@ -76,8 +76,26 @@ export const useChatRoom = (chatId: string | null) => {
 
       dispatch(
         chatApi.util.updateQueryData("getMessages", chatId, (draft) => {
+          const readAt = event.readAt ?? new Date().toISOString();
+
           for (const message of draft.messages) {
-            if (event.messageIds.includes(message.id) && !message.readBy.includes(event.userId)) {
+            if (!event.messageIds.includes(message.id)) {
+              continue;
+            }
+
+            if (!message.readReceipts) {
+              message.readReceipts = [];
+            }
+
+            const hasReceipt = message.readReceipts.some(
+              (receipt) => receipt.userId === event.userId
+            );
+
+            if (!hasReceipt) {
+              message.readReceipts.push({ userId: event.userId, readAt });
+            }
+
+            if (!message.readBy.includes(event.userId)) {
               message.readBy.push(event.userId);
             }
           }
@@ -168,6 +186,14 @@ export const useChatRoom = (chatId: string | null) => {
       updateMessageInCache(message);
     };
 
+    const handleReactionMessage = (message: Message) => {
+      if (message.chatId !== chatId) {
+        return;
+      }
+
+      updateMessageInCache(message);
+    };
+
     const handleDeletedMessage = (event: MessageDeletedEvent) => {
       if (event.chatId !== chatId) {
         return;
@@ -216,6 +242,7 @@ export const useChatRoom = (chatId: string | null) => {
     socket.on("message:new", handleNewMessage);
     socket.on("message:updated", handleUpdatedMessage);
     socket.on("message:pinned", handlePinnedMessage);
+    socket.on("message:reaction", handleReactionMessage);
     socket.on("message:deleted", handleDeletedMessage);
     socket.on("typing:start", handleTypingStart);
     socket.on("typing:stop", handleTypingStop);
@@ -227,6 +254,7 @@ export const useChatRoom = (chatId: string | null) => {
       socket.off("message:new", handleNewMessage);
       socket.off("message:updated", handleUpdatedMessage);
       socket.off("message:pinned", handlePinnedMessage);
+      socket.off("message:reaction", handleReactionMessage);
       socket.off("message:deleted", handleDeletedMessage);
       socket.off("typing:start", handleTypingStart);
       socket.off("typing:stop", handleTypingStop);

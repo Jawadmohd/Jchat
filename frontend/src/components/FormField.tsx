@@ -6,12 +6,16 @@ interface FormFieldProps extends InputHTMLAttributes<HTMLInputElement> {
   label: string;
   error?: FieldError;
   icon?: ReactNode;
+  helperText?: string;
+  helperTone?: "success" | "muted" | "error";
 }
 
 export default function FormField({
   label,
   error,
   icon,
+  helperText,
+  helperTone = "muted",
   id,
   name,
   type,
@@ -61,6 +65,19 @@ export default function FormField({
       </div>
 
       {error && <span className="text-xs text-red-600">{error.message}</span>}
+      {!error && helperText && (
+        <span
+          className={`text-xs ${
+            helperTone === "success"
+              ? "text-emerald-600"
+              : helperTone === "error"
+                ? "text-red-600"
+                : "text-muted"
+          }`}
+        >
+          {helperText}
+        </span>
+      )}
     </div>
   );
 }

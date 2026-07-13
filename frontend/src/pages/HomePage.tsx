@@ -2,17 +2,10 @@ import ChatsView from "../components/chat/ChatsView";
 import NavRail from "../components/chat/NavRail";
 import SettingsPanel from "../components/chat/SettingsPanel";
 import StatusPanel from "../components/chat/StatusPanel";
-import { useHomePage } from "../hooks/useHomePage";
+import { ChatUIProvider, useChatUI } from "../contexts/ChatUIContext";
 
-export default function HomePage() {
-  const {
-    activeTab,
-    isLoggingOut,
-    hideMobileNav,
-    handleTabChange,
-    handleLogout,
-    ...chatsViewProps
-  } = useHomePage();
+function HomePageContent() {
+  const { activeTab, isLoggingOut, hideMobileNav, handleTabChange, handleLogout } = useChatUI();
 
   return (
     <div className="flex h-screen overflow-hidden bg-primary text-secondary">
@@ -27,13 +20,7 @@ export default function HomePage() {
           hideMobileNav ? "pb-0" : "pb-[72px]"
         } lg:pb-0`}
       >
-        {activeTab === "chats" && (
-          <ChatsView
-            {...chatsViewProps}
-            isLoggingOut={isLoggingOut}
-            handleLogout={handleLogout}
-          />
-        )}
+        {activeTab === "chats" && <ChatsView />}
 
         {activeTab === "status" && (
           <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
@@ -48,5 +35,13 @@ export default function HomePage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function HomePage() {
+  return (
+    <ChatUIProvider>
+      <HomePageContent />
+    </ChatUIProvider>
   );
 }

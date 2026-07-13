@@ -5,6 +5,7 @@ import FormField from "../FormField";
 import { MailIcon, UserIcon } from "../icons/AuthIcons";
 import { useUpdateProfileMutation } from "../../features/auth/authApi";
 import { useAuth } from "../../hooks/useAuth";
+import { useUsernameAvailability } from "../../hooks/useUsernameAvailability";
 import { getErrorMessage } from "../../utils/getErrorMessage";
 import SettingsSection from "./SettingsSection";
 
@@ -22,6 +23,9 @@ export default function AccountSettingsForm() {
     register,
     handleSubmit,
     reset,
+    watch,
+    setError,
+    clearErrors,
     formState: { errors, isDirty },
   } = useForm<AccountFormValues>({
     defaultValues: {
@@ -41,6 +45,11 @@ export default function AccountSettingsForm() {
     }
   }, [reset, user]);
 
+  const usernameValue = watch("username");
+  const usernameAvailability = useUsernameAvailability(usernameValue, {
+    currentUsername: user?.username,
+  });
+
   if (!user) {
     return null;
   }
@@ -53,6 +62,16 @@ export default function AccountSettingsForm() {
     }
 
     if (data.username.trim() !== user.username) {
+      if (usernameAvailability.status === "taken") {
+        setError("username", { message: "Username is already taken" });
+        return;
+      }
+
+      if (usernameAvailability.status === "checking") {
+        toast.error("Please wait while we check username availability");
+        return;
+      }
+
       payload.username = data.username.trim();
     }
 
@@ -101,6 +120,15 @@ export default function AccountSettingsForm() {
           label="Username"
           icon={<UserIcon />}
           error={errors.username}
+          helperText={usernameAvailability.helperText}
+          helperTone={
+            usernameAvailability.status === "available"
+              ? "success"
+              : usernameAvailability.status === "taken" ||
+                  usernameAvailability.status === "invalid"
+                ? "error"
+                : "muted"
+          }
           {...register("username", {
             required: "Username is required",
             minLength: {
@@ -111,6 +139,13 @@ export default function AccountSettingsForm() {
               value: 30,
               message: "Username cannot exceed 30 characters",
             },
+            pattern: {
+              value: /^[a-zA-Z0-9_]+$/,
+              message: "Use letters, numbers, and underscores only",
+            },
+            onChange: () => clearErrors("username"),
+            validate: () =>
+              usernameAvailability.status !== "taken" || "Username is already taken",
           })}
         />
 
@@ -131,7 +166,12 @@ export default function AccountSettingsForm() {
         <div className="flex justify-end pt-1">
           <button
             type="submit"
-            disabled={isLoading || !isDirty}
+            disabled={
+              isLoading ||
+              !isDirty ||
+              usernameAvailability.isChecking ||
+              usernameAvailability.status === "taken"
+            }
             className="rounded-full bg-secondary px-5 py-2.5 text-sm font-medium text-primary transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {isLoading ? "Saving..." : "Save changes"}

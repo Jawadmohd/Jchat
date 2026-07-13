@@ -10,6 +10,7 @@ import {
   UserIcon,
 } from "../components/icons/AuthIcons";
 import { useRegisterMutation } from "../features/auth/authApi";
+import { useUsernameAvailability } from "../hooks/useUsernameAvailability";
 import type { RegisterRequest } from "../types/api";
 import { getErrorMessage } from "../utils/getErrorMessage";
 
@@ -34,6 +35,9 @@ export default function SignupPage() {
   const {
     register,
     handleSubmit,
+    watch,
+    setError,
+    clearErrors,
     formState: { errors },
   } = useForm<RegisterRequest>({
     defaultValues: {
@@ -44,7 +48,20 @@ export default function SignupPage() {
     },
   });
 
+  const usernameValue = watch("username");
+  const usernameAvailability = useUsernameAvailability(usernameValue);
+
   const onSubmit = handleSubmit(async (data) => {
+    if (usernameAvailability.status === "taken") {
+      setError("username", { message: "Username is already taken" });
+      return;
+    }
+
+    if (usernameAvailability.status === "checking") {
+      toast.error("Please wait while we check username availability");
+      return;
+    }
+
     try {
       const response = await registerUser(data).unwrap();
       toast.success(response.message);
@@ -105,6 +122,15 @@ export default function SignupPage() {
           autoComplete="username"
           icon={<UserIcon />}
           error={errors.username}
+          helperText={usernameAvailability.helperText}
+          helperTone={
+            usernameAvailability.status === "available"
+              ? "success"
+              : usernameAvailability.status === "taken" ||
+                  usernameAvailability.status === "invalid"
+                ? "error"
+                : "muted"
+          }
           {...register("username", {
             required: "Username is required",
             minLength: {
@@ -115,6 +141,13 @@ export default function SignupPage() {
               value: 30,
               message: "Username cannot exceed 30 characters",
             },
+            pattern: {
+              value: /^[a-zA-Z0-9_]+$/,
+              message: "Use letters, numbers, and underscores only",
+            },
+            onChange: () => clearErrors("username"),
+            validate: () =>
+              usernameAvailability.status !== "taken" || "Username is already taken",
           })}
         />
 
@@ -137,7 +170,7 @@ export default function SignupPage() {
         <button
           className="mt-1 flex w-full items-center justify-center gap-2 rounded-2xl bg-secondary px-5 py-3.5 text-base font-semibold text-primary shadow-[0_14px_30px_rgba(0,0,0,0.14)] transition hover:-translate-y-px hover:shadow-[0_18px_34px_rgba(0,0,0,0.18)] active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-70"
           type="submit"
-          disabled={isLoading}
+          disabled={isLoading || usernameAvailability.isChecking || usernameAvailability.status === "taken"}
         >
           {isLoading ? (
             <>

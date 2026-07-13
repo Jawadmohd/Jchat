@@ -1,16 +1,13 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { HiMagnifyingGlass, HiXMark } from "react-icons/hi2";
 import toast from "react-hot-toast";
-import type { User } from "../../types/api";
 import { useCreateDirectChatMutation } from "../../features/chat/chatApi";
-import { useAuth } from "../../hooks/useAuth";
+import { useUserSearch } from "../../hooks/useUserSearch";
 import { getErrorMessage } from "../../utils/getErrorMessage";
 import { getUserDisplayName } from "../../utils/getUserDisplayName";
 import UserAvatar from "./UserAvatar";
 
 interface NewChatPanelProps {
-  users: User[];
-  isLoading: boolean;
   onClose: () => void;
   onBack: () => void;
   onChatStarted: () => void;
@@ -19,32 +16,17 @@ interface NewChatPanelProps {
 }
 
 export default function NewChatPanel({
-  users,
-  isLoading,
   onClose,
   onBack,
   onChatStarted,
   onSelectChat,
   variant = "panel",
 }: NewChatPanelProps) {
-  const { user: currentUser } = useAuth();
   const [search, setSearch] = useState("");
   const [createDirectChat, { isLoading: isCreatingChat }] =
     useCreateDirectChatMutation();
 
-  const searchQuery = search.trim();
-  const hasSearchQuery = searchQuery.length > 0;
-
-  const filteredUsers = useMemo(() => {
-    if (!hasSearchQuery) return [];
-
-    const query = searchQuery.toLowerCase();
-    const otherUsers = users.filter((user) => user.id !== currentUser?.id);
-
-    return otherUsers.filter((user) =>
-      user.username.toLowerCase().includes(query)
-    );
-  }, [users, currentUser?.id, searchQuery, hasSearchQuery]);
+  const { users, isLoading, hasSearchQuery } = useUserSearch(search);
 
   const handleStartChat = async (participantId: string) => {
     try {
@@ -80,7 +62,7 @@ export default function NewChatPanel({
             ← Back
           </button>
           <h2 className="text-lg font-semibold">New chat</h2>
-          <p className="mt-0.5 text-sm text-muted">Search users by usernames</p>
+          <p className="mt-0.5 text-sm text-muted">Search users by name, username, or email</p>
         </div>
         <button
           type="button"
@@ -99,7 +81,7 @@ export default function NewChatPanel({
             type="text"
             value={search}
             onChange={(event) => setSearch(event.target.value)}
-            placeholder="Search users by usernames"
+            placeholder="Search users"
             autoFocus
             className="w-full bg-transparent text-sm text-secondary outline-none placeholder:text-muted"
           />
@@ -107,13 +89,17 @@ export default function NewChatPanel({
       </div>
 
       <div className="flex-1 overflow-y-auto px-2 pb-4 md:px-4">
-        {!hasSearchQuery ? null : isLoading ? (
-          <p className="px-2 py-8 text-center text-sm text-muted">Loading users...</p>
-        ) : filteredUsers.length === 0 ? (
+        {!hasSearchQuery ? (
+          <p className="px-2 py-8 text-center text-sm text-muted">
+            Start typing to search for users
+          </p>
+        ) : isLoading ? (
+          <p className="px-2 py-8 text-center text-sm text-muted">Searching users...</p>
+        ) : users.length === 0 ? (
           <p className="px-2 py-8 text-center text-sm text-muted">No users found</p>
         ) : (
           <ul>
-            {filteredUsers.map((user) => (
+            {users.map((user) => (
               <li key={user.id}>
                 <button
                   type="button"

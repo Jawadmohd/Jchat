@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
-import { useGetUsersQuery, useLogoutMutation } from "../features/auth/authApi";
+import { useLogoutMutation } from "../features/auth/authApi";
 import { useGetChatsQuery } from "../features/chat/chatApi";
 import type { NavTab } from "../components/chat/NavRail";
 import type { Chat, NewChatMode } from "../types/api";
@@ -12,7 +12,6 @@ import { usePresence } from "./usePresence";
 export function useHomePage() {
   const navigate = useNavigate();
   const { data: chats = [], isLoading: isLoadingChats } = useGetChatsQuery();
-  const { data: users = [], isLoading: isLoadingUsers } = useGetUsersQuery();
   const [logout, { isLoading: isLoggingOut }] = useLogoutMutation();
 
   const [activeTab, setActiveTab] = useState<NavTab>("chats");
@@ -76,6 +75,10 @@ export function useHomePage() {
     setSelectedChatId(null);
   };
 
+  const handleLeftGroup = () => {
+    handleBackToList();
+  };
+
   const handleLogout = async () => {
     try {
       const response = await logout().unwrap();
@@ -89,9 +92,7 @@ export function useHomePage() {
   return {
     activeTab,
     chats,
-    users,
     isLoadingChats,
-    isLoadingUsers,
     isLoggingOut,
     selectedChatId,
     selectedChat,
@@ -109,6 +110,7 @@ export function useHomePage() {
     handleSelectChatById,
     handleChatStarted,
     handleBackToList,
+    handleLeftGroup,
     handleLogout,
   };
 }

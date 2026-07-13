@@ -1,16 +1,13 @@
 import { useMemo, useState } from "react";
 import { HiMagnifyingGlass, HiXMark } from "react-icons/hi2";
 import toast from "react-hot-toast";
-import type { User } from "../../types/api";
 import { useCreateGroupChatMutation } from "../../features/chat/chatApi";
-import { useAuth } from "../../hooks/useAuth";
+import { useUserSearch } from "../../hooks/useUserSearch";
 import { getErrorMessage } from "../../utils/getErrorMessage";
 import { getUserDisplayName } from "../../utils/getUserDisplayName";
 import UserAvatar from "./UserAvatar";
 
 interface NewGroupPanelProps {
-  users: User[];
-  isLoading: boolean;
   onClose: () => void;
   onBack: () => void;
   onChatStarted: () => void;
@@ -19,31 +16,26 @@ interface NewGroupPanelProps {
 }
 
 export default function NewGroupPanel({
-  users,
-  isLoading,
   onClose,
   onBack,
   onChatStarted,
   onSelectChat,
   variant = "panel",
 }: NewGroupPanelProps) {
-  const { user: currentUser } = useAuth();
   const [groupName, setGroupName] = useState("");
   const [search, setSearch] = useState("");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [createGroupChat, { isLoading: isCreating }] = useCreateGroupChatMutation();
 
-  const searchQuery = search.trim();
-  const hasSearchQuery = searchQuery.length > 0;
+  const { users, isLoading, hasSearchQuery } = useUserSearch(search);
 
-  const filteredUsers = useMemo(() => {
-    if (!hasSearchQuery) return [];
+  const selectedUsers = useMemo(() => {
+    const fromSearch = users.filter((user) => selectedIds.includes(user.id));
+    const foundIds = new Set(fromSearch.map((user) => user.id));
+    const missingCount = selectedIds.filter((id) => !foundIds.has(id)).length;
 
-    const query = searchQuery.toLowerCase();
-    return users
-      .filter((user) => user.id !== currentUser?.id)
-      .filter((user) => user.username.toLowerCase().includes(query));
-  }, [users, currentUser?.id, searchQuery, hasSearchQuery]);
+    return { fromSearch, missingCount };
+  }, [users, selectedIds]);
 
   const toggleMember = (userId: string) => {
     setSelectedIds((current) =>
@@ -128,24 +120,32 @@ export default function NewGroupPanel({
             type="text"
             value={search}
             onChange={(event) => setSearch(event.target.value)}
-            placeholder="Search users by usernames"
+            placeholder="Search users to add"
             className="w-full bg-transparent text-sm text-secondary outline-none placeholder:text-muted"
           />
         </div>
 
         {selectedIds.length > 0 && (
-          <p className="text-sm text-muted">{selectedIds.length} member(s) selected</p>
+          <p className="text-sm text-muted">
+            {selectedIds.length} member{selectedIds.length === 1 ? "" : "s"} selected
+            {selectedUsers.missingCount > 0 &&
+              ` (${selectedUsers.missingCount} not shown in current search)`}
+          </p>
         )}
       </div>
 
       <div className="flex-1 overflow-y-auto px-2 pb-4 md:px-4">
-        {!hasSearchQuery ? null : isLoading ? (
-          <p className="px-2 py-8 text-center text-sm text-muted">Loading users...</p>
-        ) : filteredUsers.length === 0 ? (
+        {!hasSearchQuery ? (
+          <p className="px-2 py-8 text-center text-sm text-muted">
+            Start typing to search for members
+          </p>
+        ) : isLoading ? (
+          <p className="px-2 py-8 text-center text-sm text-muted">Searching users...</p>
+        ) : users.length === 0 ? (
           <p className="px-2 py-8 text-center text-sm text-muted">No users found</p>
         ) : (
           <ul>
-            {filteredUsers.map((user) => {
+            {users.map((user) => {
               const isSelected = selectedIds.includes(user.id);
 
               return (

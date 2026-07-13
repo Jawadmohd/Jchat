@@ -27,7 +27,8 @@ const isAuthBypassEndpoint = (url: string): boolean => {
   return (
     url.includes("/users/login") ||
     url.includes("/users/register") ||
-    url.includes("/users/me")
+    url.includes("/users/me") ||
+    url.includes("/users/username/availability")
   );
 };
 
@@ -114,10 +115,23 @@ export const authApi = createApi({
         }
       },
     }),
-    getUsers: builder.query<User[], void>({
-      query: () => "/users",
+    searchUsers: builder.query<User[], { search: string; limit?: number }>({
+      query: ({ search, limit = 20 }) => ({
+        url: "/users",
+        params: { search, limit },
+      }),
       transformResponse: (response: UsersListResponse) => response.data,
-      providesTags: ["User"],
+    }),
+    checkUsernameAvailability: builder.query<
+      { username: string; available: boolean },
+      { username: string }
+    >({
+      query: ({ username }) => ({
+        url: "/users/username/availability",
+        params: { username },
+      }),
+      transformResponse: (response: ApiResponse<{ username: string; available: boolean }>) =>
+        response.data,
     }),
     uploadAvatar: builder.mutation<User, FormData>({
       query: (formData) => ({
@@ -177,7 +191,8 @@ export const {
   useLoginMutation,
   useLogoutMutation,
   useGetMeQuery,
-  useGetUsersQuery,
+  useSearchUsersQuery,
+  useLazyCheckUsernameAvailabilityQuery,
   useUploadAvatarMutation,
   useRemoveAvatarMutation,
   useUpdateProfileMutation,

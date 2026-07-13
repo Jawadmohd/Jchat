@@ -1,12 +1,10 @@
-import type { NewChatMode, User } from "../../types/api";
+import type { NewChatMode } from "../../types/api";
 import NewChatPanel from "./NewChatPanel";
 import NewChatPicker from "./NewChatPicker";
 import NewGroupPanel from "./NewGroupPanel";
 
 interface NewChatOverlayProps {
   mode: NewChatMode;
-  users: User[];
-  isLoading: boolean;
   onClose: () => void;
   onSelectMode: (mode: NewChatMode) => void;
   onBackToPicker: () => void;
@@ -16,8 +14,6 @@ interface NewChatOverlayProps {
 
 export default function NewChatOverlay({
   mode,
-  users,
-  isLoading,
   onClose,
   onSelectMode,
   onBackToPicker,
@@ -32,8 +28,6 @@ export default function NewChatOverlay({
 
       {mode === "direct" && (
         <NewChatPanel
-          users={users}
-          isLoading={isLoading}
           onClose={onClose}
           onBack={onBackToPicker}
           onChatStarted={onChatStarted}
@@ -44,8 +38,6 @@ export default function NewChatOverlay({
 
       {mode === "group" && (
         <NewGroupPanel
-          users={users}
-          isLoading={isLoading}
           onClose={onClose}
           onBack={onBackToPicker}
           onChatStarted={onChatStarted}

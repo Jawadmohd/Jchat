@@ -1,5 +1,4 @@
 import type { Chat, NewChatMode } from "../../types/api";
-import type { User } from "../../types/api";
 import ChatConversation from "./ChatConversation";
 import ChatEmptyState from "./ChatEmptyState";
 import NewChatPanel from "./NewChatPanel";
@@ -10,28 +9,26 @@ interface ChatMainPanelProps {
   newChatMode: NewChatMode | null;
   selectedChatId: string | null;
   selectedChat: Chat | null;
-  users: User[];
-  isLoadingUsers: boolean;
   onCloseNewChat: () => void;
   onSelectNewChatMode: (mode: NewChatMode) => void;
   onBackToNewChatPicker: () => void;
   onChatStarted: () => void;
   onSelectChatById: (chatId: string) => void;
   onBackToList: () => void;
+  onLeftGroup: () => void;
 }
 
 export default function ChatMainPanel({
   newChatMode,
   selectedChatId,
   selectedChat,
-  users,
-  isLoadingUsers,
   onCloseNewChat,
   onSelectNewChatMode,
   onBackToNewChatPicker,
   onChatStarted,
   onSelectChatById,
   onBackToList,
+  onLeftGroup,
 }: ChatMainPanelProps) {
   if (newChatMode === "picker") {
     return (
@@ -46,8 +43,6 @@ export default function ChatMainPanel({
   if (newChatMode === "direct") {
     return (
       <NewChatPanel
-        users={users}
-        isLoading={isLoadingUsers}
         onClose={onCloseNewChat}
         onBack={onBackToNewChatPicker}
         onChatStarted={onChatStarted}
@@ -60,8 +55,6 @@ export default function ChatMainPanel({
   if (newChatMode === "group") {
     return (
       <NewGroupPanel
-        users={users}
-        isLoading={isLoadingUsers}
         onClose={onCloseNewChat}
         onBack={onBackToNewChatPicker}
         onChatStarted={onChatStarted}
@@ -73,7 +66,12 @@ export default function ChatMainPanel({
 
   if (selectedChat && selectedChatId) {
     return (
-      <ChatConversation chatId={selectedChatId} chat={selectedChat} onBack={onBackToList} />
+      <ChatConversation
+        chatId={selectedChatId}
+        chat={selectedChat}
+        onBack={onBackToList}
+        onLeftGroup={onLeftGroup}
+      />
     );
   }
 

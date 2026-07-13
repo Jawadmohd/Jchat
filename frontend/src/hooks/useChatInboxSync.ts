@@ -8,6 +8,8 @@ import type {
   MessageDeletedEvent,
   MessagesReadEvent,
   PresenceUpdateEvent,
+  ChatUpdatedEvent,
+  Chat,
 } from "../types/api";
 import { useAuth } from "./useAuth";
 import { getMessagePreviewText } from "../utils/messagePreview";
@@ -152,14 +154,82 @@ export const useChatInboxSync = (selectedChatId: string | null) => {
       if (hasMessagesCache) {
         dispatch(
           chatApi.util.updateQueryData("getMessages", event.chatId, (draft) => {
+            const readAt = event.readAt ?? new Date().toISOString();
+
             for (const message of draft.messages) {
-              if (event.messageIds.includes(message.id) && !message.readBy.includes(event.userId)) {
+              if (!event.messageIds.includes(message.id)) {
+                continue;
+              }
+
+              if (!message.readReceipts) {
+                message.readReceipts = [];
+              }
+
+              const hasReceipt = message.readReceipts.some(
+                (receipt) => receipt.userId === event.userId
+              );
+
+              if (!hasReceipt) {
+                message.readReceipts.push({ userId: event.userId, readAt });
+              }
+
+              if (!message.readBy.includes(event.userId)) {
                 message.readBy.push(event.userId);
               }
             }
           })
         );
       }
+    };
+
+    const handleReactionMessage = (message: Message) => {
+      const hasMessagesCache = Boolean(
+        chatApi.endpoints.getMessages.select(message.chatId)(store.getState()).data
+      );
+
+      if (hasMessagesCache) {
+        dispatch(
+          chatApi.util.updateQueryData("getMessages", message.chatId, (draft) => {
+            const index = draft.messages.findIndex((item) => item.id === message.id);
+
+            if (index !== -1) {
+              draft.messages[index] = message;
+            }
+          })
+        );
+      }
+    };
+
+    const handleChatUpdated = (event: ChatUpdatedEvent) => {
+      if (event.leftBy) {
+        dispatch(chatApi.util.invalidateTags([{ type: "Chat", id: "LIST" }]));
+
+        if (event.leftBy === user.id && event.chatId === selectedChatId) {
+          dispatch(chatApi.util.invalidateTags([{ type: "Chat", id: event.chatId }]));
+        }
+        return;
+      }
+
+      if (!event.id) {
+        dispatch(chatApi.util.invalidateTags([{ type: "Chat", id: "LIST" }]));
+        return;
+      }
+
+      dispatch(
+        chatApi.util.updateQueryData("getChats", undefined, (draft) => {
+          const index = draft.findIndex((chat) => chat.id === event.id);
+
+          if (index === -1) {
+            return;
+          }
+
+          draft[index] = {
+            ...draft[index],
+            ...event,
+            id: event.id,
+          } as Chat;
+        })
+      );
     };
 
     const handlePresenceUpdate = (event: PresenceUpdateEvent) => {
@@ -187,16 +257,20 @@ export const useChatInboxSync = (selectedChatId: string | null) => {
     socket.on("message:new", handleNewMessage);
     socket.on("message:updated", handleUpdatedMessage);
     socket.on("message:pinned", handlePinnedMessage);
+    socket.on("message:reaction", handleReactionMessage);
     socket.on("message:deleted", handleDeletedMessage);
     socket.on("messages:read", handleMessagesRead);
+    socket.on("chat:updated", handleChatUpdated);
     socket.on("presence:update", handlePresenceUpdate);
 
     return () => {
       socket.off("message:new", handleNewMessage);
       socket.off("message:updated", handleUpdatedMessage);
       socket.off("message:pinned", handlePinnedMessage);
+      socket.off("message:reaction", handleReactionMessage);
       socket.off("message:deleted", handleDeletedMessage);
       socket.off("messages:read", handleMessagesRead);
+      socket.off("chat:updated", handleChatUpdated);
       socket.off("presence:update", handlePresenceUpdate);
     };
   }, [dispatch, selectedChatId, user]);
