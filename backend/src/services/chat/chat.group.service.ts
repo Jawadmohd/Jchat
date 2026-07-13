@@ -1,4 +1,5 @@
 import { Types } from "mongoose";
+import { invalidateChatCaches, invalidateInboxForParticipants } from "../../cache";
 import { Chat, User, type IChatDocument } from "../../models";
 import { ApiError } from "../../utils";
 import { getAdminIds, toPublicChat } from "./chat.mapper";
@@ -60,6 +61,8 @@ export const createGroupChat = async (
 
   await chat.populate("participants", "username name emailId avatarUrl identityPublicKey");
 
+  await invalidateInboxForParticipants(participants);
+
   return toPublicChat(chat, userId, 0);
 };
 
@@ -75,6 +78,11 @@ export const updateGroupName = async (chatId: string, userId: string, name: stri
 
   chat.name = trimmedName;
   await chat.save();
+
+  await invalidateChatCaches(
+    chatId,
+    chat.participants.map((id) => id.toString())
+  );
 
   return getChatById(chatId, userId);
 };
@@ -109,6 +117,11 @@ export const addGroupMembers = async (
   chat.participants.push(...newIds.map((id) => new Types.ObjectId(id)));
   await chat.save();
 
+  await invalidateChatCaches(
+    chatId,
+    chat.participants.map((id) => id.toString())
+  );
+
   return getChatById(chatId, userId);
 };
 
@@ -141,6 +154,9 @@ export const removeGroupMember = async (
   }
 
   await chat.save();
+
+  const participantIds = chat.participants.map((id) => id.toString());
+  await invalidateChatCaches(chatId, [...participantIds, memberId]);
 
   if (isSelf) {
     return { chatId, left: true };

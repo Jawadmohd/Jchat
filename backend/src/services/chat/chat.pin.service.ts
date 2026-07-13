@@ -1,4 +1,5 @@
 import { Types } from "mongoose";
+import { invalidateInbox } from "../../cache";
 import { User } from "../../models";
 import { ApiError } from "../../utils";
 import { getChatById } from "./chat.inbox.service";
@@ -17,6 +18,7 @@ export const pinChat = async (chatId: string, userId: string) => {
   if (!alreadyPinned) {
     user.pinnedChatIds.push(new Types.ObjectId(chatId));
     await user.save();
+    await invalidateInbox(userId);
   }
 
   return { chatId, isPinned: true };
@@ -28,6 +30,8 @@ export const unpinChat = async (chatId: string, userId: string) => {
   await User.findByIdAndUpdate(userId, {
     $pull: { pinnedChatIds: chatId },
   });
+
+  await invalidateInbox(userId);
 
   return { chatId, isPinned: false };
 };

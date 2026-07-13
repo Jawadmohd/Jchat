@@ -10,6 +10,7 @@ import { errorHandler } from "./middlewares/error.middleware";
 import routes from "./routes";
 import { initSocket } from "./socket";
 import { connectDatabase } from "./utils";
+import { connectRedis } from "./utils/redis.util";
 
 const app = express();
 const PORT = process.env.PORT ?? 8000;
@@ -36,6 +37,7 @@ app.use(errorHandler);
 
 const startServer = async () => {
   await connectDatabase();
+  await connectRedis();
 
   const httpServer = http.createServer(app);
   initSocket(httpServer);

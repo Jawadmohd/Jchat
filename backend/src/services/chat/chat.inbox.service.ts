@@ -1,3 +1,4 @@
+import { CACHE_TTL, cacheGetOrSet, cacheKeys } from "../../cache";
 import { Chat, User } from "../../models";
 import type { PopulatedUser } from "../../types/populated.types";
 import { getUnreadCountsByChat } from "../message/message.read.service";
@@ -5,7 +6,7 @@ import { getPresenceForUsers } from "../presence/presence.service";
 import { ApiError } from "../../utils";
 import { CHAT_POPULATE_OPTIONS, toPublicChat } from "./chat.mapper";
 
-export const getChatById = async (chatId: string, userId: string) => {
+const fetchChatById = async (chatId: string, userId: string) => {
   const chat = await Chat.findOne({
     _id: chatId,
     participants: userId,
@@ -39,7 +40,15 @@ export const getChatById = async (chatId: string, userId: string) => {
   );
 };
 
-export const getUserChats = async (userId: string) => {
+export const getChatById = async (chatId: string, userId: string) => {
+  return cacheGetOrSet(
+    cacheKeys.chatForUser(chatId, userId),
+    CACHE_TTL.CHAT,
+    () => fetchChatById(chatId, userId)
+  );
+};
+
+const fetchUserChats = async (userId: string) => {
   const currentUser = await User.findById(userId).select("pinnedChatIds");
 
   if (!currentUser) {
@@ -92,4 +101,8 @@ export const getUserChats = async (userId: string) => {
 
     return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
   });
+};
+
+export const getUserChats = async (userId: string) => {
+  return cacheGetOrSet(cacheKeys.inbox(userId), CACHE_TTL.INBOX, () => fetchUserChats(userId));
 };

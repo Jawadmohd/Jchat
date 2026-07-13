@@ -1,3 +1,4 @@
+import { CACHE_TTL, cacheGetOrSet, cacheKeys, invalidateAuthUser } from "../../cache";
 import { User } from "../../models";
 import { ApiError, comparePassword, hashPassword } from "../../utils";
 import { toPublicUser } from "./user.mapper";
@@ -30,14 +31,16 @@ export const searchUsers = async (
   const limit = Math.min(options.limit ?? 20, 50);
   const pattern = new RegExp(escapeRegex(trimmedQuery), "i");
 
-  const users = await User.find({
-    _id: { $ne: currentUserId },
-    $or: [{ username: pattern }, { name: pattern }, { emailId: pattern }],
-  })
-    .sort({ username: 1 })
-    .limit(limit);
+  return cacheGetOrSet(cacheKeys.searchUsers(currentUserId, trimmedQuery), CACHE_TTL.SEARCH, async () => {
+    const users = await User.find({
+      _id: { $ne: currentUserId },
+      $or: [{ username: pattern }, { name: pattern }, { emailId: pattern }],
+    })
+      .sort({ username: 1 })
+      .limit(limit);
 
-  return users.map(toPublicUser);
+    return users.map(toPublicUser);
+  });
 };
 
 export const isUsernameAvailable = async (username: string, excludeUserId?: string) => {
@@ -58,13 +61,15 @@ export const isUsernameAvailable = async (username: string, excludeUserId?: stri
 };
 
 export const getUserById = async (userId: string) => {
-  const user = await User.findById(userId);
+  return cacheGetOrSet(cacheKeys.userProfile(userId), CACHE_TTL.USER_PROFILE, async () => {
+    const user = await User.findById(userId);
 
-  if (!user) {
-    throw new ApiError(404, "User not found");
-  }
+    if (!user) {
+      throw new ApiError(404, "User not found");
+    }
 
-  return toPublicUser(user);
+    return toPublicUser(user);
+  });
 };
 
 export const updateUser = async (userId: string, input: UpdateUserInput) => {
@@ -114,6 +119,8 @@ export const updateUser = async (userId: string, input: UpdateUserInput) => {
 
   await user.save();
 
+  await invalidateAuthUser(userId);
+
   return toPublicUser(user);
 };
 
@@ -123,6 +130,8 @@ export const deleteUser = async (userId: string) => {
   if (!user) {
     throw new ApiError(404, "User not found");
   }
+
+  await invalidateAuthUser(userId);
 
   return toPublicUser(user);
 };

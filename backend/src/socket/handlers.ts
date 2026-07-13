@@ -19,14 +19,14 @@ export const registerSocketHandlers = (io: Server) => {
     const { user } = socket.data;
 
     void socket.join(getUserRoom(user.id));
-    setUserOnline(user.id);
+    void setUserOnline(user.id);
     void broadcastPresence(user.id, true, null);
 
     socket.on("disconnect", () => {
       void (async () => {
         const lastSeenDate = await setUserOffline(user.id);
         const lastSeen = lastSeenDate ? lastSeenDate.toISOString() : null;
-        await broadcastPresence(user.id, isUserOnline(user.id), lastSeen);
+        await broadcastPresence(user.id, await isUserOnline(user.id), lastSeen);
       })();
     });
 

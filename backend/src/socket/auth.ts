@@ -1,4 +1,5 @@
 import type { Socket } from "socket.io";
+import { CACHE_TTL, cacheGet, cacheKeys, cacheSet } from "../cache";
 import { User } from "../models";
 import { getTokenCookieName } from "../utils/cookie.util";
 import { verifyToken } from "../utils/jwt.util";
@@ -40,17 +41,41 @@ export const parseAuthUser = async (socket: Socket): Promise<SocketUser | null> 
 
   try {
     const { userId } = verifyToken(token);
-    const user = await User.findById(userId).select("username name");
+    const cacheKey = cacheKeys.authUser(userId);
+    const cachedUser = await cacheGet<{ id: string; username: string; name: string }>(cacheKey);
+
+    if (cachedUser) {
+      return {
+        id: cachedUser.id,
+        username: cachedUser.username,
+        name: cachedUser.name,
+      };
+    }
+
+    const user = await User.findById(userId).select("username name emailId");
 
     if (!user) {
       return null;
     }
 
-    return {
+    const socketUser: SocketUser = {
       id: user._id.toString(),
       username: user.username,
       name: user.name?.trim() || user.username,
     };
+
+    await cacheSet(
+      cacheKey,
+      {
+        id: socketUser.id,
+        emailId: user.emailId,
+        username: socketUser.username,
+        name: socketUser.name,
+      },
+      CACHE_TTL.AUTH_USER
+    );
+
+    return socketUser;
   } catch {
     return null;
   }

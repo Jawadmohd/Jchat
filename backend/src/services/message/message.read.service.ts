@@ -1,4 +1,5 @@
 import { Types } from "mongoose";
+import { invalidateChatCaches } from "../../cache";
 import { Chat, Message } from "../../models";
 import type { PopulatedUser } from "../../types/populated.types";
 import { assertChatParticipant } from "../chat/chat.access";
@@ -58,6 +59,8 @@ export const markMessagesAsRead = async (chatId: string, userId: string) => {
   })
     .select("_id")
     .lean();
+
+  await invalidateChatCaches(chatId);
 
   return {
     chatId,

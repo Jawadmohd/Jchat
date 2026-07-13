@@ -1,3 +1,4 @@
+import { invalidateInboxForParticipants } from "../../cache";
 import { Chat, User } from "../../models";
 import { getUnreadCountsByChat } from "../message/message.read.service";
 import { getPresenceForUsers } from "../presence/presence.service";
@@ -45,6 +46,8 @@ export const getOrCreateDirectChat = async (
   });
 
   await chat.populate("participants", "username name emailId avatarUrl identityPublicKey");
+
+  await invalidateInboxForParticipants([userId, participantId]);
 
   return toPublicChat(chat, userId, 0);
 };

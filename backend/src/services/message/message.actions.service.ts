@@ -1,4 +1,5 @@
 import { Types } from "mongoose";
+import { cacheDelete, cacheDeletePattern, cacheKeys } from "../../cache";
 import { Message } from "../../models";
 import { assertChatParticipant } from "../chat/chat.access";
 import { ApiError } from "../../utils";
@@ -21,6 +22,9 @@ export const pinMessage = async (messageId: string, chatId: string, userId: stri
   await message.save();
   await populateMessage(message);
 
+  await cacheDeletePattern(cacheKeys.messagesPattern(chatId));
+  await cacheDelete(cacheKeys.pinnedMessages(chatId));
+
   return toPublicMessage(message);
 };
 
@@ -38,6 +42,9 @@ export const unpinMessage = async (messageId: string, chatId: string, userId: st
   message.pinnedBy = null;
   await message.save();
   await populateMessage(message);
+
+  await cacheDeletePattern(cacheKeys.messagesPattern(chatId));
+  await cacheDelete(cacheKeys.pinnedMessages(chatId));
 
   return toPublicMessage(message);
 };
@@ -81,6 +88,8 @@ export const toggleMessageReaction = async (
 
   await message.save();
   await populateMessage(message);
+
+  await cacheDeletePattern(cacheKeys.messagesPattern(chatId));
 
   return toPublicMessage(message);
 };

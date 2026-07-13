@@ -1,4 +1,5 @@
 import { Types } from "mongoose";
+import { CACHE_TTL, cacheGetOrSet, cacheKeys, invalidateChatCaches } from "../../cache";
 import { Chat, Message, type MessageType } from "../../models";
 import { assertChatParticipant } from "../chat/chat.access";
 import { ApiError } from "../../utils";
@@ -91,6 +92,8 @@ export const createMessage = async (
 
   await populateMessage(message);
 
+  await invalidateChatCaches(chatId);
+
   return toPublicMessage(message);
 };
 
@@ -99,7 +102,7 @@ interface ListMessagesOptions {
   before?: string;
 }
 
-export const getMessagesByChat = async (
+const fetchMessagesByChat = async (
   chatId: string,
   userId: string,
   options: ListMessagesOptions = {}
@@ -129,7 +132,21 @@ export const getMessagesByChat = async (
   };
 };
 
-export const getPinnedMessagesByChat = async (chatId: string, userId: string) => {
+export const getMessagesByChat = async (
+  chatId: string,
+  userId: string,
+  options: ListMessagesOptions = {}
+) => {
+  const limit = options.limit ?? 50;
+
+  return cacheGetOrSet(
+    cacheKeys.messages(chatId, options.before ?? null, limit),
+    CACHE_TTL.MESSAGES,
+    () => fetchMessagesByChat(chatId, userId, options)
+  );
+};
+
+const fetchPinnedMessagesByChat = async (chatId: string, userId: string) => {
   await assertChatParticipant(chatId, userId);
 
   const messages = await Message.find({ chat: chatId, isPinned: true })
@@ -138,6 +155,12 @@ export const getPinnedMessagesByChat = async (chatId: string, userId: string) =>
     .populate(REPLY_POPULATE);
 
   return messages.map((message) => toPublicMessage(message));
+};
+
+export const getPinnedMessagesByChat = async (chatId: string, userId: string) => {
+  return cacheGetOrSet(cacheKeys.pinnedMessages(chatId), CACHE_TTL.PINNED_MESSAGES, () =>
+    fetchPinnedMessagesByChat(chatId, userId)
+  );
 };
 
 interface UpdateMessageInput {
@@ -177,6 +200,8 @@ export const updateMessage = async (
   await message.save();
   await populateMessage(message);
 
+  await invalidateChatCaches(chatId);
+
   return toPublicMessage(message);
 };
 
@@ -202,6 +227,8 @@ export const deleteMessage = async (
   if (chat?.lastMessage?.toString() === messageId) {
     await syncChatLastMessage(chatId);
   }
+
+  await invalidateChatCaches(chatId);
 
   return { messageId, chatId };
 };

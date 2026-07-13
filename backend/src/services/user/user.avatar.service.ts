@@ -1,3 +1,4 @@
+import { invalidateAuthUser } from "../../cache";
 import { User } from "../../models";
 import { ApiError } from "../../utils";
 import { toPublicUser } from "./user.mapper";
@@ -17,6 +18,8 @@ export const setUserAvatar = async (
   user.avatarPublicId = avatarPublicId;
   await user.save();
 
+  await invalidateAuthUser(userId);
+
   return toPublicUser(user);
 };
 
@@ -30,6 +33,8 @@ export const clearUserAvatar = async (userId: string) => {
   user.avatarUrl = null;
   user.avatarPublicId = null;
   await user.save();
+
+  await invalidateAuthUser(userId);
 
   return toPublicUser(user);
 };

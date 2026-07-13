@@ -1,3 +1,4 @@
+import { invalidateAuthUser } from "../../cache";
 import { User } from "../../models";
 import { ApiError } from "../../utils";
 import { toPublicUser } from "./user.mapper";
@@ -11,6 +12,8 @@ export const setIdentityPublicKey = async (userId: string, identityPublicKey: st
 
   user.identityPublicKey = identityPublicKey;
   await user.save();
+
+  await invalidateAuthUser(userId);
 
   return toPublicUser(user);
 };

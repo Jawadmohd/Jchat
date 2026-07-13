@@ -8,6 +8,7 @@ export {
   getTokenCookieName,
 } from "./cookie.util";
 export { connectDatabase } from "./database.util";
+export { connectRedis, disconnectRedis, getRedis, isRedisReady } from "./redis.util";
 export {
   deleteAvatarFromCloudinary,
   uploadAvatarToCloudinary,
