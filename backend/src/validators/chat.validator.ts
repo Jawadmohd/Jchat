@@ -16,3 +16,17 @@ export const createGroupChatSchema = Joi.object({
     "any.required": "Select at least one member",
   }),
 });
+
+export const updateGroupNameSchema = Joi.object({
+  name: Joi.string().trim().min(1).max(100).required().messages({
+    "string.empty": "Group name is required",
+    "any.required": "Group name is required",
+  }),
+});
+
+export const addGroupMembersSchema = Joi.object({
+  participantIds: Joi.array().items(Joi.string()).min(1).required().messages({
+    "array.min": "Select at least one member",
+    "any.required": "Select at least one member",
+  }),
+});

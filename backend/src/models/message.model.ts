@@ -2,6 +2,16 @@ import { Schema, model, type Document, type Model, type Types } from "mongoose";
 
 export type MessageType = "text" | "image" | "file";
 
+export interface IMessageReadReceipt {
+  userId: Types.ObjectId;
+  readAt: Date;
+}
+
+export interface IMessageReaction {
+  emoji: string;
+  userId: Types.ObjectId;
+}
+
 export interface IMessage {
   chat: Types.ObjectId;
   sender: Types.ObjectId;
@@ -11,7 +21,8 @@ export interface IMessage {
   attachmentName?: string | null;
   attachmentMimeType?: string | null;
   attachmentSize?: number | null;
-  readBy: Types.ObjectId[];
+  readReceipts: IMessageReadReceipt[];
+  reactions: IMessageReaction[];
   isEdited: boolean;
   replyTo?: Types.ObjectId | null;
   isPinned: boolean;
@@ -64,12 +75,41 @@ const messageSchema = new Schema<IMessageDocument>(
       type: Number,
       default: null,
     },
-    readBy: [
-      {
-        type: Schema.Types.ObjectId,
-        ref: "User",
-      },
-    ],
+    readReceipts: {
+      type: [
+        {
+          userId: {
+            type: Schema.Types.ObjectId,
+            ref: "User",
+            required: true,
+          },
+          readAt: {
+            type: Date,
+            required: true,
+            default: Date.now,
+          },
+        },
+      ],
+      default: [],
+    },
+    reactions: {
+      type: [
+        {
+          emoji: {
+            type: String,
+            required: true,
+            trim: true,
+            maxlength: 8,
+          },
+          userId: {
+            type: Schema.Types.ObjectId,
+            ref: "User",
+            required: true,
+          },
+        },
+      ],
+      default: [],
+    },
     isEdited: {
       type: Boolean,
       default: false,

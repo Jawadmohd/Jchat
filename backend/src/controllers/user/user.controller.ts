@@ -2,11 +2,12 @@ import type { Request, Response } from "express";
 import {
   clearUserAvatar,
   deleteUser,
-  getAllUsers,
   getUserAvatarMeta,
   getUserById,
+  isUsernameAvailable,
   loginUser,
   registerUser,
+  searchUsers,
   setUserAvatar,
   updateUser,
 } from "../../services/user/user.service";
@@ -61,13 +62,26 @@ export const getMe = asyncHandler(async (req: Request, res: Response) => {
   });
 });
 
-export const getUsers = asyncHandler(async (_req: Request, res: Response) => {
-  const users = await getAllUsers();
+export const getUsers = asyncHandler(async (req: Request, res: Response) => {
+  const search = String(req.query.search);
+  const limit = req.query.limit ? Number(req.query.limit) : undefined;
+  const users = await searchUsers(req.user!.id, search, { limit });
 
   res.status(200).json({
     success: true,
     count: users.length,
     data: users,
+  });
+});
+
+export const checkUsernameAvailability = asyncHandler(async (req: Request, res: Response) => {
+  const username = String(req.query.username);
+  const excludeUserId = req.user?.id;
+  const available = await isUsernameAvailable(username, excludeUserId);
+
+  res.status(200).json({
+    success: true,
+    data: { username: username.trim(), available },
   });
 });
 

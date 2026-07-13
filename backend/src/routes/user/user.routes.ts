@@ -1,5 +1,6 @@
 import { Router } from "express";
 import {
+  checkUsernameAvailability,
   deleteUserById,
   getMe,
   getUser,
@@ -13,11 +14,14 @@ import {
   uploadAvatar,
 } from "../../controllers/user/user.controller";
 import { authenticate } from "../../middlewares/auth.middleware";
+import { optionalAuthenticate } from "../../middlewares/optionalAuth.middleware";
 import { validate } from "../../middlewares/validate.middleware";
 import { avatarUpload } from "../../middlewares/upload.middleware";
 import {
+  checkUsernameAvailabilitySchema,
   loginUserSchema,
   registerUserSchema,
+  searchUsersSchema,
   updateUserSchema,
 } from "../../validators/user.validator";
 
@@ -36,7 +40,13 @@ router.post(
   uploadAvatar
 );
 router.delete("/me/avatar", authenticate, removeAvatar);
-router.get("/", authenticate, getUsers);
+router.get(
+  "/username/availability",
+  optionalAuthenticate,
+  validate(checkUsernameAvailabilitySchema, "query"),
+  checkUsernameAvailability
+);
+router.get("/", authenticate, validate(searchUsersSchema, "query"), getUsers);
 router.get("/:id", authenticate, getUser);
 router.put("/:id", authenticate, validate(updateUserSchema), updateUserById);
 router.delete("/:id", authenticate, deleteUserById);

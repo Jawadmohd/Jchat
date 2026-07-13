@@ -1,15 +1,19 @@
 import type { Request, Response } from "express";
 import {
+  addGroupMembers,
   createGroupChat,
   getChatById,
   getOrCreateDirectChat,
   getUserChats,
+  leaveGroup,
   pinChat,
+  removeGroupMember,
   unpinChat,
+  updateGroupName,
 } from "../../services/chat/chat.service";
 import { markMessagesAsRead } from "../../services/message/message.service";
 import { asyncHandler } from "../../utils";
-import { emitMessagesRead } from "../../socket";
+import { emitChatUpdated, emitMessagesRead } from "../../socket";
 
 export const listChats = asyncHandler(async (req: Request, res: Response) => {
   const chats = await getUserChats(req.user!.id);
@@ -82,6 +86,70 @@ export const unpinUserChat = asyncHandler(async (req: Request, res: Response) =>
 
   res.status(200).json({
     success: true,
+    data: result,
+  });
+});
+
+export const renameGroup = asyncHandler(async (req: Request, res: Response) => {
+  const chatId = String(req.params.chatId);
+  const chat = await updateGroupName(chatId, req.user!.id, req.body.name);
+
+  emitChatUpdated(chatId, chat);
+
+  res.status(200).json({
+    success: true,
+    message: "Group renamed",
+    data: chat,
+  });
+});
+
+export const addMembers = asyncHandler(async (req: Request, res: Response) => {
+  const chatId = String(req.params.chatId);
+  const chat = await addGroupMembers(chatId, req.user!.id, req.body.participantIds);
+
+  emitChatUpdated(chatId, chat);
+
+  res.status(200).json({
+    success: true,
+    message: "Members added",
+    data: chat,
+  });
+});
+
+export const removeMember = asyncHandler(async (req: Request, res: Response) => {
+  const chatId = String(req.params.chatId);
+  const memberId = String(req.params.memberId);
+  const result = await removeGroupMember(chatId, req.user!.id, memberId);
+
+  if ("left" in result && result.left) {
+    emitChatUpdated(chatId, { chatId, leftBy: req.user!.id });
+
+    res.status(200).json({
+      success: true,
+      message: "Left group",
+      data: result,
+    });
+    return;
+  }
+
+  emitChatUpdated(chatId, result);
+
+  res.status(200).json({
+    success: true,
+    message: "Member removed",
+    data: result,
+  });
+});
+
+export const leaveGroupChat = asyncHandler(async (req: Request, res: Response) => {
+  const chatId = String(req.params.chatId);
+  const result = await leaveGroup(chatId, req.user!.id);
+
+  emitChatUpdated(chatId, { chatId, leftBy: req.user!.id });
+
+  res.status(200).json({
+    success: true,
+    message: "Left group",
     data: result,
   });
 });

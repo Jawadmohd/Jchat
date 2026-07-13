@@ -4,7 +4,9 @@ import {
   deleteMessage,
   getMessagesByChat,
   getPinnedMessagesByChat,
+  getMessageReadReceipts,
   pinMessage,
+  toggleMessageReaction,
   unpinMessage,
   updateMessage,
 } from "../../services/message/message.service";
@@ -13,6 +15,7 @@ import { uploadMessageAttachmentToCloudinary } from "../../utils/cloudinary.util
 import {
   emitMessageDeleted,
   emitMessagePinned,
+  emitMessageReaction,
   emitMessageUpdated,
   emitNewMessage,
 } from "../../socket";
@@ -151,5 +154,34 @@ export const unpinChatMessage = asyncHandler(async (req: Request, res: Response)
     success: true,
     message: "Message unpinned",
     data: message,
+  });
+});
+
+export const toggleReaction = asyncHandler(async (req: Request, res: Response) => {
+  const chatId = String(req.params.chatId);
+  const messageId = String(req.params.messageId);
+  const message = await toggleMessageReaction(
+    messageId,
+    chatId,
+    req.user!.id,
+    req.body.emoji
+  );
+
+  emitMessageReaction(chatId, message);
+
+  res.status(200).json({
+    success: true,
+    data: message,
+  });
+});
+
+export const getReadReceipts = asyncHandler(async (req: Request, res: Response) => {
+  const chatId = String(req.params.chatId);
+  const messageId = String(req.params.messageId);
+  const result = await getMessageReadReceipts(messageId, chatId, req.user!.id);
+
+  res.status(200).json({
+    success: true,
+    data: result,
   });
 });

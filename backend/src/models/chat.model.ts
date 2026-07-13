@@ -6,6 +6,8 @@ export interface IChat {
   name?: string;
   type: ChatType;
   participants: Types.ObjectId[];
+  createdBy?: Types.ObjectId | null;
+  adminIds: Types.ObjectId[];
   lastMessage?: Types.ObjectId;
 }
 
@@ -32,6 +34,17 @@ const chatSchema = new Schema<IChatDocument>(
         type: Schema.Types.ObjectId,
         ref: "User",
         required: true,
+      },
+    ],
+    createdBy: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
+    adminIds: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: "User",
       },
     ],
     lastMessage: {

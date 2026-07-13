@@ -56,3 +56,19 @@ export const updateUserSchema = Joi.object({
     "object.min": "At least one field is required to update",
     "object.and": "Current password is required to set a new password",
   });
+
+export const searchUsersSchema = Joi.object({
+  search: Joi.string().trim().min(1).max(100).required().messages({
+    "string.empty": "Search query is required",
+    "any.required": "Search query is required",
+  }),
+  limit: Joi.number().integer().min(1).max(50).default(20),
+});
+
+export const checkUsernameAvailabilitySchema = Joi.object({
+  username: Joi.string().trim().min(3).max(30).required().messages({
+    "string.min": "Username must be at least 3 characters",
+    "string.max": "Username cannot exceed 30 characters",
+    "any.required": "Username is required",
+  }),
+});
