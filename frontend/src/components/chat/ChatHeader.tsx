@@ -1,5 +1,5 @@
 import type { Chat } from "../../types/api";
-import { HiMapPin, HiUsers } from "react-icons/hi2";
+import { HiLockClosed, HiMapPin, HiUsers } from "react-icons/hi2";
 import { formatPresenceStatus } from "../../utils/formatPresenceStatus";
 import { getUserDisplayName } from "../../utils/getUserDisplayName";
 import UserAvatar from "./UserAvatar";
@@ -73,6 +73,9 @@ export default function ChatHeader({
       </div>
 
       <div className="flex items-center gap-1 text-muted">
+        {chat.e2eeEnabled && (
+          <HiLockClosed className="h-5 w-5" title="End-to-end encrypted" />
+        )}
         {chat.isPinned && <HiMapPin className="h-5 w-5" title="Pinned chat" />}
         {isGroup && onOpenGroupSettings && (
           <button

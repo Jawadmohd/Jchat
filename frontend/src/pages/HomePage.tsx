@@ -2,7 +2,8 @@ import ChatsView from "../components/chat/ChatsView";
 import NavRail from "../components/chat/NavRail";
 import SettingsPanel from "../components/chat/SettingsPanel";
 import StatusPanel from "../components/chat/StatusPanel";
-import { ChatUIProvider, useChatUI } from "../contexts/ChatUIContext";
+import { ChatUIProvider } from "../contexts/ChatUIProvider";
+import { useChatUI } from "../hooks/useChatUI";
 
 function HomePageContent() {
   const { activeTab, isLoggingOut, hideMobileNav, handleTabChange, handleLogout } = useChatUI();

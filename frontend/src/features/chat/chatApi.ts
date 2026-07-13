@@ -3,6 +3,7 @@ import type {
   Chat,
   ChatResponse,
   ChatsListResponse,
+  E2EEWrappedKey,
   Message,
   MessageDeletedEvent,
   MessageResponse,
@@ -55,12 +56,19 @@ export const chatApi = authApi.injectEndpoints({
     }),
     sendMessage: builder.mutation<
       Message,
-      { chatId: string; content: string; replyToMessageId?: string }
+      {
+        chatId: string;
+        content?: string;
+        ciphertext?: string;
+        iv?: string;
+        isEncrypted?: boolean;
+        replyToMessageId?: string;
+      }
     >({
-      query: ({ chatId, content, replyToMessageId }) => ({
+      query: ({ chatId, content, ciphertext, iv, isEncrypted, replyToMessageId }) => ({
         url: `/chats/${chatId}/messages`,
         method: "POST",
-        body: { content, replyToMessageId },
+        body: { content, ciphertext, iv, isEncrypted, replyToMessageId },
       }),
       transformResponse: (response: MessageResponse) => response.data,
       invalidatesTags: (_result, _error, { chatId }) => [
@@ -109,12 +117,19 @@ export const chatApi = authApi.injectEndpoints({
     }),
     updateMessage: builder.mutation<
       Message,
-      { chatId: string; messageId: string; content: string }
+      {
+        chatId: string;
+        messageId: string;
+        content?: string;
+        ciphertext?: string;
+        iv?: string;
+        isEncrypted?: boolean;
+      }
     >({
-      query: ({ chatId, messageId, content }) => ({
+      query: ({ chatId, messageId, content, ciphertext, iv, isEncrypted }) => ({
         url: `/chats/${chatId}/messages/${messageId}`,
         method: "PATCH",
-        body: { content },
+        body: { content, ciphertext, iv, isEncrypted },
       }),
       transformResponse: (response: MessageResponse) => response.data,
       invalidatesTags: (_result, _error, { chatId }) => [
@@ -260,6 +275,21 @@ export const chatApi = authApi.injectEndpoints({
         { type: "Chat", id: chatId },
       ],
     }),
+    upsertE2EEKeys: builder.mutation<
+      Chat,
+      { chatId: string; wrappedKeys: E2EEWrappedKey[] }
+    >({
+      query: ({ chatId, wrappedKeys }) => ({
+        url: `/chats/${chatId}/e2ee-keys`,
+        method: "PUT",
+        body: { wrappedKeys },
+      }),
+      transformResponse: (response: ChatResponse) => response.data,
+      invalidatesTags: (_result, _error, { chatId }) => [
+        { type: "Chat", id: "LIST" },
+        { type: "Chat", id: chatId },
+      ],
+    }),
   }),
   overrideExisting: false,
 });
@@ -285,4 +315,5 @@ export const {
   useAddGroupMembersMutation,
   useRemoveGroupMemberMutation,
   useLeaveGroupMutation,
+  useUpsertE2EEKeysMutation,
 } = chatApi;

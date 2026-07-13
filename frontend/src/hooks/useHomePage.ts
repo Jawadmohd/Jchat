@@ -6,7 +6,9 @@ import { useGetChatsQuery } from "../features/chat/chatApi";
 import type { NavTab } from "../components/chat/NavRail";
 import type { Chat, NewChatMode } from "../types/api";
 import { getErrorMessage } from "../utils/getErrorMessage";
+import { isMobileLayout } from "../utils/isMobileLayout";
 import { useChatInboxSync } from "./useChatInboxSync";
+import { useGroupInboxKeySync } from "./useGroupInboxKeySync";
 import { usePresence } from "./usePresence";
 
 export function useHomePage() {
@@ -27,11 +29,14 @@ export function useHomePage() {
   const selectedUser = selectedChat?.otherParticipant ?? null;
 
   useChatInboxSync(selectedChatId);
+  useGroupInboxKeySync(chats);
   usePresence();
 
   const openChat = (chatId: string) => {
     setSelectedChatId(chatId);
-    setMobileShowChat(true);
+    if (isMobileLayout()) {
+      setMobileShowChat(true);
+    }
     setNewChatMode(null);
   };
 
@@ -67,12 +72,13 @@ export function useHomePage() {
   };
 
   const handleChatStarted = () => {
-    setMobileShowChat(true);
+    if (isMobileLayout()) {
+      setMobileShowChat(true);
+    }
   };
 
   const handleBackToList = () => {
     setMobileShowChat(false);
-    setSelectedChatId(null);
   };
 
   const handleLeftGroup = () => {

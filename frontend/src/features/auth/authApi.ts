@@ -183,6 +183,23 @@ export const authApi = createApi({
         }
       },
     }),
+    uploadIdentityKey: builder.mutation<User, { identityPublicKey: string }>({
+      query: (body) => ({
+        url: "/users/me/identity-key",
+        method: "PUT",
+        body,
+      }),
+      transformResponse: (response: ApiResponse<User>) => response.data,
+      invalidatesTags: ["User", "Chat"],
+      async onQueryStarted(_arg, { dispatch, queryFulfilled }) {
+        try {
+          const { data } = await queryFulfilled;
+          dispatch(setCredentials(data));
+        } catch {
+          // Keep existing credentials on failure.
+        }
+      },
+    }),
   }),
 });
 
@@ -196,4 +213,5 @@ export const {
   useUploadAvatarMutation,
   useRemoveAvatarMutation,
   useUpdateProfileMutation,
+  useUploadIdentityKeyMutation,
 } = authApi;

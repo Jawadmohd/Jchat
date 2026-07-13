@@ -5,6 +5,9 @@ export interface MessageReply {
   content: string;
   messageType: "text" | "image" | "file";
   attachmentName: string | null;
+  isEncrypted?: boolean;
+  ciphertext?: string | null;
+  iv?: string | null;
   sender: User;
 }
 
@@ -23,6 +26,9 @@ export interface Message {
   chatId: string;
   sender: User;
   content: string;
+  ciphertext: string | null;
+  iv: string | null;
+  isEncrypted: boolean;
   messageType: "text" | "image" | "file";
   attachmentUrl: string | null;
   attachmentName: string | null;

@@ -13,6 +13,7 @@ export type {
   ChatResponse,
   ChatsListResponse,
   ChatUpdatedEvent,
+  E2EEWrappedKey,
   NewChatMode,
 } from "./chat";
 export type {

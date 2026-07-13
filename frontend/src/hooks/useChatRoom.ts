@@ -310,7 +310,13 @@ export const useChatRoom = (chatId: string | null) => {
   }, [chatId]);
 
   const sendMessage = useCallback(
-    (content: string, replyToMessageId?: string) =>
+    (payload: {
+      content?: string;
+      ciphertext?: string;
+      iv?: string;
+      isEncrypted?: boolean;
+      replyToMessageId?: string;
+    }) =>
       new Promise<Message>((resolve, reject) => {
         if (!chatId) {
           reject(new Error("No chat selected"));
@@ -321,7 +327,7 @@ export const useChatRoom = (chatId: string | null) => {
 
         socket.emit(
           "message:send",
-          { chatId, content, replyToMessageId },
+          { chatId, ...payload },
           (response: { success: boolean; data?: Message; error?: string }) => {
             if (response?.success && response.data) {
               appendMessageToCache(response.data);

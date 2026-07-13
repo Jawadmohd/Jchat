@@ -5,7 +5,19 @@ export interface ChatLastMessage {
   content: string;
   messageType: "text" | "image" | "file";
   senderId: string;
+  senderName?: string | null;
   createdAt: string;
+  isEncrypted?: boolean;
+  ciphertext?: string | null;
+  iv?: string | null;
+  attachmentName?: string | null;
+}
+
+export interface E2EEWrappedKey {
+  userId: string;
+  wrappedKey: string;
+  iv: string;
+  ephemeralPublicKey: string;
 }
 
 export interface Chat {
@@ -18,6 +30,8 @@ export interface Chat {
   createdBy: string | null;
   adminIds: string[];
   isAdmin: boolean;
+  e2eeEnabled: boolean;
+  e2eeWrappedKeys: E2EEWrappedKey[];
   lastMessage: ChatLastMessage | null;
   unreadCount: number;
   isPinned: boolean;
@@ -50,4 +64,5 @@ export interface ChatUpdatedEvent {
   createdBy?: string | null;
   adminIds?: string[];
   isAdmin?: boolean;
+  e2eeWrappedKeys?: E2EEWrappedKey[];
 }

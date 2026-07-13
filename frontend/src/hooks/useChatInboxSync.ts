@@ -12,7 +12,7 @@ import type {
   Chat,
 } from "../types/api";
 import { useAuth } from "./useAuth";
-import { getMessagePreviewText } from "../utils/messagePreview";
+import { toChatLastMessageFromSocket } from "../utils/chatPreview";
 
 export const useChatInboxSync = (selectedChatId: string | null) => {
   const dispatch = useAppDispatch();
@@ -40,13 +40,7 @@ export const useChatInboxSync = (selectedChatId: string | null) => {
 
           const chat = draft[index];
 
-          chat.lastMessage = {
-            id: message.id,
-            content: getMessagePreviewText(message),
-            messageType: message.messageType,
-            senderId: message.sender.id,
-            createdAt: message.createdAt,
-          };
+          chat.lastMessage = toChatLastMessageFromSocket(message);
           chat.updatedAt = message.createdAt;
 
           if (!isOwnMessage && !isActiveChat) {
@@ -84,13 +78,7 @@ export const useChatInboxSync = (selectedChatId: string | null) => {
           const chat = draft.find((item) => item.id === message.chatId);
 
           if (chat?.lastMessage?.id === message.id) {
-            chat.lastMessage = {
-              id: message.id,
-              content: getMessagePreviewText(message),
-              messageType: message.messageType,
-              senderId: message.sender.id,
-              createdAt: message.createdAt,
-            };
+            chat.lastMessage = toChatLastMessageFromSocket(message);
           }
         })
       );
@@ -223,10 +211,12 @@ export const useChatInboxSync = (selectedChatId: string | null) => {
             return;
           }
 
+          const existing = draft[index];
           draft[index] = {
-            ...draft[index],
+            ...existing,
             ...event,
             id: event.id,
+            e2eeWrappedKeys: event.e2eeWrappedKeys ?? existing.e2eeWrappedKeys,
           } as Chat;
         })
       );

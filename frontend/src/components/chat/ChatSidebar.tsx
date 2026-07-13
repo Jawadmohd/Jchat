@@ -14,6 +14,8 @@ import { useAuth } from "../../hooks/useAuth";
 import { usePresence } from "../../hooks/usePresence";
 import { formatChatTime } from "../../utils/formatChatTime";
 import { getUserDisplayName } from "../../utils/getUserDisplayName";
+import { useChatPreviewMap } from "../../hooks/useChatPreviewMap";
+import { buildChatPreviewText } from "../../utils/chatPreview";
 import { getErrorMessage } from "../../utils/getErrorMessage";
 import UserAvatar from "./UserAvatar";
 import GroupAvatar from "./GroupAvatar";
@@ -53,26 +55,47 @@ export default function ChatSidebar({
     [chats, mergePresence]
   );
 
+  const previewByChatId = useChatPreviewMap(chatsWithPresence, currentUser?.id);
+
   const filteredChats = useMemo(() => {
     const query = search.trim().toLowerCase();
     if (!query) return chatsWithPresence;
 
-    return chatsWithPresence.filter(
-      (chat) =>
+    return chatsWithPresence.filter((chat) => {
+      const preview = previewByChatId[chat.id] ?? chat.lastMessage?.content ?? "";
+      return (
         chat.displayName.toLowerCase().includes(query) ||
-        chat.lastMessage?.content.toLowerCase().includes(query)
-    );
-  }, [chatsWithPresence, search]);
+        preview.toLowerCase().includes(query)
+      );
+    });
+  }, [chatsWithPresence, previewByChatId, search]);
 
   const getPreviewText = (chat: Chat): string => {
+    if (previewByChatId[chat.id]) {
+      return previewByChatId[chat.id];
+    }
+
     if (!chat.lastMessage) {
       return "No messages yet";
     }
 
-    const isOwnMessage = chat.lastMessage.senderId === currentUser?.id;
-    const prefix = isOwnMessage ? "You: " : "";
+    if (!currentUser?.id) {
+      return chat.lastMessage.isEncrypted ? "Encrypted message" : chat.lastMessage.content;
+    }
 
-    return `${prefix}${chat.lastMessage.content}`;
+    const body = chat.lastMessage.isEncrypted
+      ? "Encrypted message"
+      : chat.lastMessage.content;
+
+    return buildChatPreviewText(
+      chat,
+      currentUser.id,
+      body,
+      chat.lastMessage.messageType,
+      chat.lastMessage.attachmentName,
+      chat.lastMessage.senderId,
+      chat.lastMessage.isEncrypted
+    );
   };
 
   const handleTogglePin = async (event: MouseEvent, chat: Chat) => {
@@ -188,69 +211,73 @@ export default function ChatSidebar({
 
               return (
                 <li key={chat.id} className="group">
-                  <button
-                    type="button"
-                    onClick={() => onSelectChat(chat)}
-                    className={`flex w-full items-center gap-3 px-3 py-3 text-left transition ${
+                  <div
+                    className={`flex w-full items-center gap-3 px-3 py-3 transition ${
                       isSelected ? "bg-primary" : "hover:bg-primary/70"
                     }`}
                   >
-                    {isGroup ? (
-                      <GroupAvatar name={chat.displayName} size="sm" />
-                    ) : (
-                      <UserAvatar
-                        name={chat.displayName}
-                        avatarUrl={chat.otherParticipant?.avatarUrl}
-                        size="sm"
-                        showOnline={chat.otherParticipant?.isOnline}
-                      />
-                    )}
-                    <div className="min-w-0 flex-1 border-b border-secondary/5 py-0.5">
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="flex min-w-0 items-center gap-1.5">
-                          {chat.isPinned && (
-                            <HiMapPin className="h-3.5 w-3.5 shrink-0 text-muted" />
-                          )}
-                          <p
-                            className={`truncate ${
-                              hasUnread
-                                ? "font-semibold text-secondary"
-                                : "font-medium text-secondary"
-                            }`}
-                          >
-                            {chat.displayName}
-                          </p>
+                    <button
+                      type="button"
+                      onClick={() => onSelectChat(chat)}
+                      className="flex min-w-0 flex-1 items-center gap-3 text-left"
+                    >
+                      {isGroup ? (
+                        <GroupAvatar name={chat.displayName} size="sm" />
+                      ) : (
+                        <UserAvatar
+                          name={chat.displayName}
+                          avatarUrl={chat.otherParticipant?.avatarUrl}
+                          size="sm"
+                          showOnline={chat.otherParticipant?.isOnline}
+                        />
+                      )}
+                      <div className="min-w-0 flex-1 border-b border-secondary/5 py-0.5">
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex min-w-0 items-center gap-1.5">
+                            {chat.isPinned && (
+                              <HiMapPin className="h-3.5 w-3.5 shrink-0 text-muted" />
+                            )}
+                            <p
+                              className={`truncate ${
+                                hasUnread
+                                  ? "font-semibold text-secondary"
+                                  : "font-medium text-secondary"
+                              }`}
+                            >
+                              {chat.displayName}
+                            </p>
+                          </div>
+                          <div className="flex shrink-0 items-center gap-2">
+                            {chat.lastMessage && (
+                              <span className="text-[11px] text-muted">
+                                {formatChatTime(chat.lastMessage.createdAt)}
+                              </span>
+                            )}
+                            {hasUnread && (
+                              <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-secondary px-1.5 text-[10px] font-semibold text-primary">
+                                {chat.unreadCount > 99 ? "99+" : chat.unreadCount}
+                              </span>
+                            )}
+                          </div>
                         </div>
-                        <div className="flex shrink-0 items-center gap-2">
-                          {chat.lastMessage && (
-                            <span className="text-[11px] text-muted">
-                              {formatChatTime(chat.lastMessage.createdAt)}
-                            </span>
-                          )}
-                          {hasUnread && (
-                            <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-secondary px-1.5 text-[10px] font-semibold text-primary">
-                              {chat.unreadCount > 99 ? "99+" : chat.unreadCount}
-                            </span>
-                          )}
-                          <button
-                            type="button"
-                            onClick={(event) => void handleTogglePin(event, chat)}
-                            className="rounded-full p-1 text-muted opacity-0 transition hover:bg-tertiary hover:text-secondary group-hover:opacity-100"
-                            aria-label={chat.isPinned ? "Unpin chat" : "Pin chat"}
-                          >
-                            <HiMapPin className={`h-4 w-4 ${chat.isPinned ? "text-secondary" : ""}`} />
-                          </button>
-                        </div>
+                        <p
+                          className={`truncate text-sm ${
+                            hasUnread ? "font-medium text-secondary" : "text-muted"
+                          }`}
+                        >
+                          {getPreviewText(chat)}
+                        </p>
                       </div>
-                      <p
-                        className={`truncate text-sm ${
-                          hasUnread ? "font-medium text-secondary" : "text-muted"
-                        }`}
-                      >
-                        {getPreviewText(chat)}
-                      </p>
-                    </div>
-                  </button>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(event) => void handleTogglePin(event, chat)}
+                      className="shrink-0 rounded-full p-1 text-muted opacity-0 transition hover:bg-tertiary hover:text-secondary group-hover:opacity-100"
+                      aria-label={chat.isPinned ? "Unpin chat" : "Pin chat"}
+                    >
+                      <HiMapPin className={`h-4 w-4 ${chat.isPinned ? "text-secondary" : ""}`} />
+                    </button>
+                  </div>
                 </li>
               );
             })}

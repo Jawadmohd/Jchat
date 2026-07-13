@@ -21,6 +21,10 @@ export const getReplyLabel = (reply: MessageReply, currentUserId?: string): stri
 };
 
 export const getMessagePreviewText = (message: Message): string => {
+  if (message.isEncrypted) {
+    return "Encrypted message";
+  }
+
   if (message.messageType === "image") {
     return message.content.trim() || "Photo";
   }

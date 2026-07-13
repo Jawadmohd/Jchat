@@ -6,7 +6,9 @@ import {
   useLeaveGroupMutation,
   useRemoveGroupMemberMutation,
   useRenameGroupMutation,
+  useUpsertE2EEKeysMutation,
 } from "../../features/chat/chatApi";
+import { wrapGroupKeysForParticipants } from "../../crypto/chatKey";
 import { useUserSearch } from "../../hooks/useUserSearch";
 import { useAuth } from "../../hooks/useAuth";
 import type { Chat } from "../../types/api";
@@ -29,6 +31,7 @@ export default function GroupSettingsPanel({
   const { user } = useAuth();
   const [renameGroup, { isLoading: isRenaming }] = useRenameGroupMutation();
   const [addMembers, { isLoading: isAdding }] = useAddGroupMembersMutation();
+  const [upsertE2EEKeys] = useUpsertE2EEKeysMutation();
   const [removeMember, { isLoading: isRemoving }] = useRemoveGroupMemberMutation();
   const [leaveGroup, { isLoading: isLeaving }] = useLeaveGroupMutation();
 
@@ -68,7 +71,23 @@ export default function GroupSettingsPanel({
     }
 
     try {
-      await addMembers({ chatId: chat.id, participantIds: selectedIds }).unwrap();
+      const updatedChat = await addMembers({
+        chatId: chat.id,
+        participantIds: selectedIds,
+      }).unwrap();
+
+      if (updatedChat.e2eeEnabled && user?.id && "participants" in updatedChat) {
+        const wrappedKeys = await wrapGroupKeysForParticipants(
+          updatedChat,
+          user.id,
+          selectedIds
+        );
+
+        if (wrappedKeys.length > 0) {
+          await upsertE2EEKeys({ chatId: chat.id, wrappedKeys }).unwrap();
+        }
+      }
+
       toast.success("Members added");
       setSelectedIds([]);
       setShowAddMembers(false);

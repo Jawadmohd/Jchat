@@ -1,4 +1,5 @@
-import { useChatUI } from "../../contexts/ChatUIContext";
+import { useChatUI } from "../../hooks/useChatUI";
+import { useIsMobileChatView } from "../../hooks/useIsMobileChatView";
 import ChatConversation from "./ChatConversation";
 import ChatSidebar from "./ChatSidebar";
 import { ChatMainPanelContainer } from "./ChatMainPanel";
@@ -26,8 +27,12 @@ export default function ChatsView() {
     handleLogout,
   } = useChatUI();
 
-  const hideSidebarOnMobile = mobileShowChat && !showNewChat;
-  const showMobileConversation = mobileShowChat && !!selectedChat && !showNewChat;
+  const isMobileChatView = useIsMobileChatView();
+  const hideSidebarOnMobile = isMobileChatView && mobileShowChat && !showNewChat;
+  const hasSelectedChat = !!selectedChat && !!selectedChatId && !showNewChat;
+  const showMobileConversation = isMobileChatView && mobileShowChat && hasSelectedChat;
+  const highlightedChatId =
+    showNewChat || (isMobileChatView && !mobileShowChat) ? null : selectedChatId;
 
   return (
     <div className="flex h-full min-h-0 w-full flex-1 flex-col lg:flex-row">
@@ -39,7 +44,7 @@ export default function ChatsView() {
         <ChatSidebar
           chats={chats}
           isLoadingChats={isLoadingChats}
-          selectedChatId={selectedChatId}
+          selectedChatId={highlightedChatId}
           onSelectChat={handleSelectChat}
           onOpenNewChat={handleOpenNewChat}
           onLogout={handleLogout}
@@ -61,8 +66,9 @@ export default function ChatsView() {
       <ChatMainPanelContainer
         className="hidden lg:flex"
         newChatMode={newChatMode}
-        selectedChatId={selectedChatId}
-        selectedChat={selectedChat}
+        selectedChatId={hasSelectedChat ? selectedChatId : null}
+        selectedChat={hasSelectedChat ? selectedChat : null}
+        isMobileLayout={isMobileChatView}
         onCloseNewChat={handleCloseNewChat}
         onSelectNewChatMode={handleSelectNewChatMode}
         onBackToNewChatPicker={handleBackToNewChatPicker}

@@ -9,6 +9,7 @@ interface ChatMainPanelProps {
   newChatMode: NewChatMode | null;
   selectedChatId: string | null;
   selectedChat: Chat | null;
+  isMobileLayout?: boolean;
   onCloseNewChat: () => void;
   onSelectNewChatMode: (mode: NewChatMode) => void;
   onBackToNewChatPicker: () => void;
@@ -22,6 +23,7 @@ export default function ChatMainPanel({
   newChatMode,
   selectedChatId,
   selectedChat,
+  isMobileLayout = false,
   onCloseNewChat,
   onSelectNewChatMode,
   onBackToNewChatPicker,
@@ -64,7 +66,7 @@ export default function ChatMainPanel({
     );
   }
 
-  if (selectedChat && selectedChatId) {
+  if (selectedChat && selectedChatId && !isMobileLayout) {
     return (
       <ChatConversation
         chatId={selectedChatId}
@@ -92,6 +94,7 @@ export function ChatMainPanelContainer({
   className = "",
   newChatMode,
   selectedChat,
+  isMobileLayout = false,
   ...panelProps
 }: ChatMainPanelContainerProps) {
   const usePatternBackground = !newChatMode && !selectedChat;
@@ -101,7 +104,12 @@ export function ChatMainPanelContainer({
       className={`min-h-0 min-w-0 flex-1 flex-col ${className}`}
       style={usePatternBackground ? CHAT_BACKGROUND_STYLE : undefined}
     >
-      <ChatMainPanel newChatMode={newChatMode} selectedChat={selectedChat} {...panelProps} />
+      <ChatMainPanel
+        newChatMode={newChatMode}
+        selectedChat={selectedChat}
+        isMobileLayout={isMobileLayout}
+        {...panelProps}
+      />
     </main>
   );
 }

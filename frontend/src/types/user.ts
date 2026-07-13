@@ -4,6 +4,7 @@ export interface User {
   username: string;
   name: string;
   avatarUrl: string | null;
+  identityPublicKey?: string | null;
   isOnline?: boolean;
   lastSeen?: string | null;
   createdAt: string;
