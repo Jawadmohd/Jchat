@@ -1,5 +1,5 @@
 import { Types } from "mongoose";
-import { invalidateChatCaches, invalidateInboxForParticipants } from "../../cache";
+import { EventTypes, publishEvent } from "../../events";
 import { Chat, User, type IChatDocument } from "../../models";
 import { ApiError } from "../../utils";
 import { getAdminIds, toPublicChat } from "./chat.mapper";
@@ -61,7 +61,7 @@ export const createGroupChat = async (
 
   await chat.populate("participants", "username name emailId avatarUrl identityPublicKey");
 
-  await invalidateInboxForParticipants(participants);
+  await publishEvent(EventTypes.INBOX_INVALIDATED, { userIds: participants });
 
   return toPublicChat(chat, userId, 0);
 };
@@ -79,12 +79,10 @@ export const updateGroupName = async (chatId: string, userId: string, name: stri
   chat.name = trimmedName;
   await chat.save();
 
-  await invalidateChatCaches(
-    chatId,
-    chat.participants.map((id) => id.toString())
-  );
+  const chatView = await getChatById(chatId, userId);
+  await publishEvent(EventTypes.CHAT_UPDATED, { chatId, chat: chatView });
 
-  return getChatById(chatId, userId);
+  return chatView;
 };
 
 export const addGroupMembers = async (
@@ -117,12 +115,10 @@ export const addGroupMembers = async (
   chat.participants.push(...newIds.map((id) => new Types.ObjectId(id)));
   await chat.save();
 
-  await invalidateChatCaches(
-    chatId,
-    chat.participants.map((id) => id.toString())
-  );
+  const chatView = await getChatById(chatId, userId);
+  await publishEvent(EventTypes.CHAT_UPDATED, { chatId, chat: chatView });
 
-  return getChatById(chatId, userId);
+  return chatView;
 };
 
 export const removeGroupMember = async (
@@ -155,14 +151,19 @@ export const removeGroupMember = async (
 
   await chat.save();
 
-  const participantIds = chat.participants.map((id) => id.toString());
-  await invalidateChatCaches(chatId, [...participantIds, memberId]);
-
   if (isSelf) {
+    await publishEvent(EventTypes.CHAT_UPDATED, {
+      chatId,
+      chat: { chatId, leftBy: userId },
+    });
+
     return { chatId, left: true };
   }
 
-  return getChatById(chatId, userId);
+  const chatView = await getChatById(chatId, userId);
+  await publishEvent(EventTypes.CHAT_UPDATED, { chatId, chat: chatView });
+
+  return chatView;
 };
 
 export const leaveGroup = async (chatId: string, userId: string) => {

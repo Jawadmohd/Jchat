@@ -1,4 +1,4 @@
-import { invalidateAuthUser } from "../../cache";
+import { EventTypes, publishEvent } from "../../events";
 import { User } from "../../models";
 import { ApiError } from "../../utils";
 import { toPublicUser } from "./user.mapper";
@@ -13,7 +13,7 @@ export const setIdentityPublicKey = async (userId: string, identityPublicKey: st
   user.identityPublicKey = identityPublicKey;
   await user.save();
 
-  await invalidateAuthUser(userId);
+  await publishEvent(EventTypes.USER_AUTH_INVALIDATED, { userId });
 
   return toPublicUser(user);
 };

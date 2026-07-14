@@ -1,5 +1,5 @@
 import { Types } from "mongoose";
-import { invalidateChatCaches } from "../../cache";
+import { EventTypes, publishEvent } from "../../events";
 import { Chat } from "../../models";
 import { assertChatParticipant } from "./chat.access";
 import { getChatById } from "./chat.inbox.service";
@@ -55,10 +55,8 @@ export const upsertChatWrappedKeys = async (
   chat.e2eeWrappedKeys = [...existingByUser.values()];
   await chat.save();
 
-  await invalidateChatCaches(
-    chatId,
-    chat.participants.map((id) => id.toString())
-  );
+  const chatView = await getChatById(chatId, userId);
+  await publishEvent(EventTypes.CHAT_UPDATED, { chatId, chat: chatView });
 
-  return getChatById(chatId, userId);
+  return chatView;
 };

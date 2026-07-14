@@ -3,12 +3,45 @@ import { User } from "../../models";
 import { getRedis, isRedisReady } from "../../utils/redis.util";
 
 const localOnlineUsers = new Map<string, number>();
+const PRESENCE_CONNECTION_TTL_SECONDS = 60 * 60 * 24;
+
+export const resetPresenceState = async () => {
+  if (isRedisReady()) {
+    const redis = getRedis()!;
+    const onlineKey = cacheKeys.presenceOnline();
+    const connectionPattern = `${cacheKeys.presenceConnections("*")}`;
+
+    await redis.del(onlineKey);
+
+    let cursor = "0";
+    do {
+      const [nextCursor, keys] = await redis.scan(
+        cursor,
+        "MATCH",
+        connectionPattern,
+        "COUNT",
+        100
+      );
+      cursor = nextCursor;
+
+      if (keys.length > 0) {
+        await redis.del(...keys);
+      }
+    } while (cursor !== "0");
+
+    console.log("Redis presence state cleared");
+    return;
+  }
+
+  localOnlineUsers.clear();
+};
 
 export const setUserOnline = async (userId: string) => {
   if (isRedisReady()) {
     const redis = getRedis()!;
     const connectionKey = cacheKeys.presenceConnections(userId);
     const connectionCount = await redis.incr(connectionKey);
+    await redis.expire(connectionKey, PRESENCE_CONNECTION_TTL_SECONDS);
 
     if (connectionCount === 1) {
       await redis.sadd(cacheKeys.presenceOnline(), userId);
@@ -33,6 +66,7 @@ export const setUserOffline = async (userId: string) => {
       return new Date();
     }
 
+    await redis.expire(connectionKey, PRESENCE_CONNECTION_TTL_SECONDS);
     return null;
   }
 

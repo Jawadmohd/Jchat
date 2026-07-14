@@ -1,4 +1,4 @@
-import { invalidateAuthUser } from "../../cache";
+import { EventTypes, publishEvent } from "../../events";
 import { User } from "../../models";
 import { ApiError } from "../../utils";
 import { toPublicUser } from "./user.mapper";
@@ -18,7 +18,7 @@ export const setUserAvatar = async (
   user.avatarPublicId = avatarPublicId;
   await user.save();
 
-  await invalidateAuthUser(userId);
+  await publishEvent(EventTypes.USER_AUTH_INVALIDATED, { userId });
 
   return toPublicUser(user);
 };
@@ -34,7 +34,7 @@ export const clearUserAvatar = async (userId: string) => {
   user.avatarPublicId = null;
   await user.save();
 
-  await invalidateAuthUser(userId);
+  await publishEvent(EventTypes.USER_AUTH_INVALIDATED, { userId });
 
   return toPublicUser(user);
 };

@@ -1,5 +1,6 @@
 import { Types } from "mongoose";
-import { CACHE_TTL, cacheGetOrSet, cacheKeys, invalidateChatCaches } from "../../cache";
+import { CACHE_TTL, cacheGetOrSet, cacheKeys } from "../../cache";
+import { EventTypes, publishEvent } from "../../events";
 import { Chat, Message, type MessageType } from "../../models";
 import { assertChatParticipant } from "../chat/chat.access";
 import { ApiError } from "../../utils";
@@ -92,9 +93,10 @@ export const createMessage = async (
 
   await populateMessage(message);
 
-  await invalidateChatCaches(chatId);
+  const publicMessage = toPublicMessage(message);
+  await publishEvent(EventTypes.MESSAGE_CREATED, { chatId, message: publicMessage });
 
-  return toPublicMessage(message);
+  return publicMessage;
 };
 
 interface ListMessagesOptions {
@@ -200,9 +202,10 @@ export const updateMessage = async (
   await message.save();
   await populateMessage(message);
 
-  await invalidateChatCaches(chatId);
+  const publicMessage = toPublicMessage(message);
+  await publishEvent(EventTypes.MESSAGE_UPDATED, { chatId, message: publicMessage });
 
-  return toPublicMessage(message);
+  return publicMessage;
 };
 
 export const deleteMessage = async (
@@ -228,7 +231,7 @@ export const deleteMessage = async (
     await syncChatLastMessage(chatId);
   }
 
-  await invalidateChatCaches(chatId);
+  await publishEvent(EventTypes.MESSAGE_DELETED, { chatId, messageId });
 
   return { messageId, chatId };
 };

@@ -1,5 +1,5 @@
 import { Types } from "mongoose";
-import { invalidateInbox } from "../../cache";
+import { EventTypes, publishEvent } from "../../events";
 import { User } from "../../models";
 import { ApiError } from "../../utils";
 import { getChatById } from "./chat.inbox.service";
@@ -18,7 +18,7 @@ export const pinChat = async (chatId: string, userId: string) => {
   if (!alreadyPinned) {
     user.pinnedChatIds.push(new Types.ObjectId(chatId));
     await user.save();
-    await invalidateInbox(userId);
+    await publishEvent(EventTypes.INBOX_INVALIDATED, { userIds: [userId], chatId });
   }
 
   return { chatId, isPinned: true };
@@ -31,7 +31,7 @@ export const unpinChat = async (chatId: string, userId: string) => {
     $pull: { pinnedChatIds: chatId },
   });
 
-  await invalidateInbox(userId);
+  await publishEvent(EventTypes.INBOX_INVALIDATED, { userIds: [userId], chatId });
 
   return { chatId, isPinned: false };
 };

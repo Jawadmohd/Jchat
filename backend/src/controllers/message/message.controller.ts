@@ -12,13 +12,6 @@ import {
 } from "../../services/message/message.service";
 import { asyncHandler } from "../../utils";
 import { uploadMessageAttachmentToCloudinary } from "../../utils/cloudinary.util";
-import {
-  emitMessageDeleted,
-  emitMessagePinned,
-  emitMessageReaction,
-  emitMessageUpdated,
-  emitNewMessage,
-} from "../../socket";
 
 export const listMessages = asyncHandler(async (req: Request, res: Response) => {
   const chatId = String(req.params.chatId);
@@ -57,8 +50,6 @@ export const sendMessage = asyncHandler(async (req: Request, res: Response) => {
     replyToMessageId: req.body.replyToMessageId,
   });
 
-  emitNewMessage(chatId, message);
-
   res.status(201).json({
     success: true,
     message: "Message sent",
@@ -93,8 +84,6 @@ export const sendAttachment = asyncHandler(async (req: Request, res: Response) =
     iv: typeof req.body.iv === "string" ? req.body.iv : undefined,
   });
 
-  emitNewMessage(chatId, message);
-
   res.status(201).json({
     success: true,
     message: "Attachment sent",
@@ -119,8 +108,6 @@ export const editMessage = asyncHandler(async (req: Request, res: Response) => {
       : req.body.content
   );
 
-  emitMessageUpdated(chatId, message);
-
   res.status(200).json({
     success: true,
     message: "Message updated",
@@ -132,8 +119,6 @@ export const removeMessage = asyncHandler(async (req: Request, res: Response) =>
   const chatId = String(req.params.chatId);
   const messageId = String(req.params.messageId);
   const result = await deleteMessage(messageId, chatId, req.user!.id);
-
-  emitMessageDeleted(chatId, result);
 
   res.status(200).json({
     success: true,
@@ -147,8 +132,6 @@ export const pinChatMessage = asyncHandler(async (req: Request, res: Response) =
   const messageId = String(req.params.messageId);
   const message = await pinMessage(messageId, chatId, req.user!.id);
 
-  emitMessagePinned(chatId, message);
-
   res.status(200).json({
     success: true,
     message: "Message pinned",
@@ -160,8 +143,6 @@ export const unpinChatMessage = asyncHandler(async (req: Request, res: Response)
   const chatId = String(req.params.chatId);
   const messageId = String(req.params.messageId);
   const message = await unpinMessage(messageId, chatId, req.user!.id);
-
-  emitMessagePinned(chatId, message);
 
   res.status(200).json({
     success: true,
@@ -179,8 +160,6 @@ export const toggleReaction = asyncHandler(async (req: Request, res: Response) =
     req.user!.id,
     req.body.emoji
   );
-
-  emitMessageReaction(chatId, message);
 
   res.status(200).json({
     success: true,

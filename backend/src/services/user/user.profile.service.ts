@@ -1,4 +1,5 @@
-import { CACHE_TTL, cacheGetOrSet, cacheKeys, invalidateAuthUser } from "../../cache";
+import { CACHE_TTL, cacheGetOrSet, cacheKeys } from "../../cache";
+import { EventTypes, publishEvent } from "../../events";
 import { User } from "../../models";
 import { ApiError, comparePassword, hashPassword } from "../../utils";
 import { toPublicUser } from "./user.mapper";
@@ -119,7 +120,7 @@ export const updateUser = async (userId: string, input: UpdateUserInput) => {
 
   await user.save();
 
-  await invalidateAuthUser(userId);
+  await publishEvent(EventTypes.USER_AUTH_INVALIDATED, { userId });
 
   return toPublicUser(user);
 };
@@ -131,7 +132,7 @@ export const deleteUser = async (userId: string) => {
     throw new ApiError(404, "User not found");
   }
 
-  await invalidateAuthUser(userId);
+  await publishEvent(EventTypes.USER_AUTH_INVALIDATED, { userId });
 
   return toPublicUser(user);
 };

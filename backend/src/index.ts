@@ -7,10 +7,12 @@ import express from "express";
 import helmet from "helmet";
 import morgan from "morgan";
 import { errorHandler } from "./middlewares/error.middleware";
+import { initEventBus, shutdownEventBus } from "./events";
 import routes from "./routes";
 import { initSocket } from "./socket";
 import { connectDatabase } from "./utils";
 import { connectRedis } from "./utils/redis.util";
+import { resetPresenceState } from "./services/presence/presence.service";
 
 const app = express();
 const PORT = process.env.PORT ?? 8000;
@@ -38,14 +40,29 @@ app.use(errorHandler);
 const startServer = async () => {
   await connectDatabase();
   await connectRedis();
+  await resetPresenceState();
 
   const httpServer = http.createServer(app);
   initSocket(httpServer);
+  await initEventBus();
 
   httpServer.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
   });
 };
+
+const shutdown = async () => {
+  await shutdownEventBus();
+  process.exit(0);
+};
+
+process.on("SIGINT", () => {
+  void shutdown();
+});
+
+process.on("SIGTERM", () => {
+  void shutdown();
+});
 
 startServer().catch((error) => {
   console.error("Failed to start server:", error);

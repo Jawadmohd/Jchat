@@ -14,7 +14,6 @@ import {
 } from "../../services/chat/chat.service";
 import { markMessagesAsRead } from "../../services/message/message.service";
 import { asyncHandler } from "../../utils";
-import { emitChatUpdated, emitMessagesRead } from "../../socket";
 
 export const listChats = asyncHandler(async (req: Request, res: Response) => {
   const chats = await getUserChats(req.user!.id);
@@ -63,8 +62,6 @@ export const markChatAsRead = asyncHandler(async (req: Request, res: Response) =
   const chatId = String(req.params.chatId);
   const result = await markMessagesAsRead(chatId, req.user!.id);
 
-  emitMessagesRead(chatId, result);
-
   res.status(200).json({
     success: true,
     data: result,
@@ -95,8 +92,6 @@ export const renameGroup = asyncHandler(async (req: Request, res: Response) => {
   const chatId = String(req.params.chatId);
   const chat = await updateGroupName(chatId, req.user!.id, req.body.name);
 
-  emitChatUpdated(chatId, chat);
-
   res.status(200).json({
     success: true,
     message: "Group renamed",
@@ -107,8 +102,6 @@ export const renameGroup = asyncHandler(async (req: Request, res: Response) => {
 export const addMembers = asyncHandler(async (req: Request, res: Response) => {
   const chatId = String(req.params.chatId);
   const chat = await addGroupMembers(chatId, req.user!.id, req.body.participantIds);
-
-  emitChatUpdated(chatId, chat);
 
   res.status(200).json({
     success: true,
@@ -123,8 +116,6 @@ export const removeMember = asyncHandler(async (req: Request, res: Response) => 
   const result = await removeGroupMember(chatId, req.user!.id, memberId);
 
   if ("left" in result && result.left) {
-    emitChatUpdated(chatId, { chatId, leftBy: req.user!.id });
-
     res.status(200).json({
       success: true,
       message: "Left group",
@@ -132,8 +123,6 @@ export const removeMember = asyncHandler(async (req: Request, res: Response) => 
     });
     return;
   }
-
-  emitChatUpdated(chatId, result);
 
   res.status(200).json({
     success: true,
@@ -146,8 +135,6 @@ export const leaveGroupChat = asyncHandler(async (req: Request, res: Response) =
   const chatId = String(req.params.chatId);
   const result = await leaveGroup(chatId, req.user!.id);
 
-  emitChatUpdated(chatId, { chatId, leftBy: req.user!.id });
-
   res.status(200).json({
     success: true,
     message: "Left group",
@@ -158,8 +145,6 @@ export const leaveGroupChat = asyncHandler(async (req: Request, res: Response) =
 export const upsertE2EEKeys = asyncHandler(async (req: Request, res: Response) => {
   const chatId = String(req.params.chatId);
   const chat = await upsertChatWrappedKeys(chatId, req.user!.id, req.body.wrappedKeys);
-
-  emitChatUpdated(chatId, chat);
 
   res.status(200).json({
     success: true,

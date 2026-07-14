@@ -10,7 +10,6 @@ import {
   setUserOnline,
 } from "../services/presence/presence.service";
 import type { AuthenticatedSocket } from "./auth";
-import { emitMessagesRead, emitToChatParticipants } from "./emitter";
 import { broadcastPresence } from "./presence";
 import { getChatRoom, getUserRoom } from "./rooms";
 
@@ -94,7 +93,6 @@ export const registerSocketHandlers = (io: Server) => {
             attachmentSize,
             replyToMessageId,
           });
-          void emitToChatParticipants(chatId, "message:new", message);
           callback?.({ success: true, data: message });
         } catch (error) {
           const message = error instanceof Error ? error.message : "Failed to send message";
@@ -108,8 +106,7 @@ export const registerSocketHandlers = (io: Server) => {
         return;
       }
 
-      const result = await markMessagesAsRead(chatId, user.id);
-      emitMessagesRead(chatId, result);
+      await markMessagesAsRead(chatId, user.id);
     });
 
     socket.on("typing:start", async ({ chatId }: { chatId: string }) => {

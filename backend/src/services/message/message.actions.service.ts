@@ -1,5 +1,5 @@
 import { Types } from "mongoose";
-import { cacheDelete, cacheDeletePattern, cacheKeys } from "../../cache";
+import { EventTypes, publishEvent } from "../../events";
 import { Message } from "../../models";
 import { assertChatParticipant } from "../chat/chat.access";
 import { ApiError } from "../../utils";
@@ -22,10 +22,10 @@ export const pinMessage = async (messageId: string, chatId: string, userId: stri
   await message.save();
   await populateMessage(message);
 
-  await cacheDeletePattern(cacheKeys.messagesPattern(chatId));
-  await cacheDelete(cacheKeys.pinnedMessages(chatId));
+  const publicMessage = toPublicMessage(message);
+  await publishEvent(EventTypes.MESSAGE_PINNED, { chatId, message: publicMessage });
 
-  return toPublicMessage(message);
+  return publicMessage;
 };
 
 export const unpinMessage = async (messageId: string, chatId: string, userId: string) => {
@@ -43,10 +43,10 @@ export const unpinMessage = async (messageId: string, chatId: string, userId: st
   await message.save();
   await populateMessage(message);
 
-  await cacheDeletePattern(cacheKeys.messagesPattern(chatId));
-  await cacheDelete(cacheKeys.pinnedMessages(chatId));
+  const publicMessage = toPublicMessage(message);
+  await publishEvent(EventTypes.MESSAGE_PINNED, { chatId, message: publicMessage });
 
-  return toPublicMessage(message);
+  return publicMessage;
 };
 
 export const toggleMessageReaction = async (
@@ -89,7 +89,8 @@ export const toggleMessageReaction = async (
   await message.save();
   await populateMessage(message);
 
-  await cacheDeletePattern(cacheKeys.messagesPattern(chatId));
+  const publicMessage = toPublicMessage(message);
+  await publishEvent(EventTypes.MESSAGE_REACTION_TOGGLED, { chatId, message: publicMessage });
 
-  return toPublicMessage(message);
+  return publicMessage;
 };

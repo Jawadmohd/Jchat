@@ -1,5 +1,5 @@
 import { Types } from "mongoose";
-import { invalidateChatCaches } from "../../cache";
+import { EventTypes, publishEvent } from "../../events";
 import { Chat, Message } from "../../models";
 import type { PopulatedUser } from "../../types/populated.types";
 import { assertChatParticipant } from "../chat/chat.access";
@@ -39,7 +39,7 @@ export const markMessagesAsRead = async (chatId: string, userId: string) => {
   const userObjectId = new Types.ObjectId(userId);
   const readAt = new Date();
 
-  const result = await Message.updateMany(
+  const updateResult = await Message.updateMany(
     {
       chat: chatId,
       sender: { $ne: userObjectId },
@@ -60,15 +60,17 @@ export const markMessagesAsRead = async (chatId: string, userId: string) => {
     .select("_id")
     .lean();
 
-  await invalidateChatCaches(chatId);
-
-  return {
+  const readResult = {
     chatId,
     userId,
     readAt: readAt.toISOString(),
-    updatedCount: result.modifiedCount,
+    updatedCount: updateResult.modifiedCount,
     messageIds: updatedMessages.map((message) => message._id.toString()),
   };
+
+  await publishEvent(EventTypes.MESSAGES_READ, readResult);
+
+  return readResult;
 };
 
 export const getMessageReadReceipts = async (
