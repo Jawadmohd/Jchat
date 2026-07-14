@@ -45,6 +45,7 @@ export const usePresence = () => {
     const live = presenceMap[user.id];
 
     if (!live) {
+      // No live socket update yet — keep API presence as-is (now live from server).
       return user;
     }
 
