@@ -1,5 +1,5 @@
 import type { Chat } from "../../types/api";
-import { HiLockClosed, HiMapPin, HiUsers } from "react-icons/hi2";
+import { HiLockClosed, HiMagnifyingGlass, HiMapPin, HiUsers } from "react-icons/hi2";
 import { formatPresenceStatus } from "../../utils/formatPresenceStatus";
 import { getUserDisplayName } from "../../utils/getUserDisplayName";
 import UserAvatar from "./UserAvatar";
@@ -11,6 +11,7 @@ interface ChatHeaderProps {
   showBackButton?: boolean;
   typingUsername?: string | null;
   onOpenGroupSettings?: () => void;
+  onOpenSearch?: () => void;
 }
 
 export default function ChatHeader({
@@ -19,6 +20,7 @@ export default function ChatHeader({
   showBackButton = false,
   typingUsername = null,
   onOpenGroupSettings,
+  onOpenSearch,
 }: ChatHeaderProps) {
   const isGroup = chat.type === "group";
   const displayUser = chat.otherParticipant;
@@ -73,6 +75,17 @@ export default function ChatHeader({
       </div>
 
       <div className="flex items-center gap-1 text-muted">
+        {onOpenSearch && (
+          <button
+            type="button"
+            onClick={onOpenSearch}
+            className="rounded-full p-2 transition hover:bg-primary hover:text-secondary"
+            aria-label="Search in chat"
+            title="Search in chat"
+          >
+            <HiMagnifyingGlass className="h-5 w-5" />
+          </button>
+        )}
         {chat.e2eeEnabled && (
           <HiLockClosed className="h-5 w-5" title="End-to-end encrypted" />
         )}

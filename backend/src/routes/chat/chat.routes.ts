@@ -19,6 +19,7 @@ import {
   listPinnedMessages,
   pinChatMessage,
   removeMessage,
+  searchMessages,
   sendAttachment,
   sendMessage,
   toggleReaction,
@@ -37,6 +38,7 @@ import {
 import {
   createMessageSchema,
   listMessagesSchema,
+  searchMessagesSchema,
   toggleReactionSchema,
   updateMessageSchema,
   upsertWrappedKeysSchema,
@@ -48,6 +50,12 @@ router.get("/", authenticate, listChats);
 router.post("/direct", authenticate, validate(createDirectChatSchema), createDirectChat);
 router.post("/group", authenticate, validate(createGroupChatSchema), createGroup);
 router.get("/:chatId/messages", authenticate, validate(listMessagesSchema, "query"), listMessages);
+router.get(
+  "/:chatId/messages/search",
+  authenticate,
+  validate(searchMessagesSchema, "query"),
+  searchMessages
+);
 router.get("/:chatId/messages/pinned", authenticate, listPinnedMessages);
 router.post("/:chatId/messages", authenticate, validate(createMessageSchema), sendMessage);
 router.post(

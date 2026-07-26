@@ -76,7 +76,12 @@ export const parseAuthUser = async (socket: Socket): Promise<SocketUser | null> 
     );
 
     return socketUser;
-  } catch {
+  } catch (error) {
+    // Invalid/expired cookies are expected; log unexpected failures.
+    const message = error instanceof Error ? error.message : String(error);
+    if (!message.includes("Invalid or expired token") && !message.includes("Authentication")) {
+      console.warn("Socket auth failed:", message);
+    }
     return null;
   }
 };

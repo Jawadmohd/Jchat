@@ -20,6 +20,11 @@ export const listMessagesSchema = Joi.object({
   before: Joi.date().iso().optional(),
 });
 
+export const searchMessagesSchema = Joi.object({
+  q: Joi.string().trim().min(1).max(100).required(),
+  limit: Joi.number().integer().min(1).max(50).default(30),
+});
+
 export const toggleReactionSchema = Joi.object({
   emoji: Joi.string().trim().min(1).max(8).required().messages({
     "any.required": "Emoji is required",

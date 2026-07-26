@@ -40,10 +40,14 @@ export function useUsernameAvailability(
           setAvailable(result.available);
         }
       })
-      .catch(() => {
+      .catch((error) => {
         if (!cancelled) {
           setAvailable(null);
         }
+        console.warn(
+          "Username availability check failed:",
+          error instanceof Error ? error.message : error
+        );
       });
 
     return () => {

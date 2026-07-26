@@ -83,11 +83,18 @@ export function useDecryptedMessages(messages: Message[], chat: Chat | null) {
 
     let cancelled = false;
 
-    void decryptMessages(messages, chat!, user!.id).then((result) => {
-      if (!cancelled) {
-        setDecryptedMessages(result);
-      }
-    });
+    void decryptMessages(messages, chat!, user!.id)
+      .then((result) => {
+        if (!cancelled) {
+          setDecryptedMessages(result);
+        }
+      })
+      .catch((error) => {
+        console.warn(
+          "Failed to decrypt messages:",
+          error instanceof Error ? error.message : error
+        );
+      });
 
     return () => {
       cancelled = true;

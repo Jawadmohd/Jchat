@@ -38,6 +38,21 @@ export const avatarUpload = multer({
   },
 });
 
+export const statusUpload = multer({
+  storage: multer.memoryStorage(),
+  fileFilter: (_req, file, cb) => {
+    if (imageMimeTypes.includes(file.mimetype)) {
+      cb(null, true);
+      return;
+    }
+
+    cb(new ApiError(400, "Only JPEG, PNG, WebP, and GIF images are allowed"));
+  },
+  limits: {
+    fileSize: 8 * 1024 * 1024,
+  },
+});
+
 export const messageAttachmentUpload = multer({
   storage: multer.memoryStorage(),
   fileFilter,

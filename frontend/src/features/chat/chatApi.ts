@@ -54,6 +54,13 @@ export const chatApi = authApi.injectEndpoints({
       transformResponse: (response: MessagesListResponse) => response.data,
       providesTags: (_result, _error, chatId) => [{ type: "Message", id: `${chatId}-pinned` }],
     }),
+    searchMessages: builder.query<Message[], { chatId: string; q: string; limit?: number }>({
+      query: ({ chatId, q, limit = 30 }) => ({
+        url: `/chats/${chatId}/messages/search`,
+        params: { q, limit },
+      }),
+      transformResponse: (response: MessagesListResponse) => response.data,
+    }),
     sendMessage: builder.mutation<
       Message,
       {
@@ -299,6 +306,7 @@ export const {
   useGetMessagesQuery,
   useLazyLoadOlderMessagesQuery,
   useGetPinnedMessagesQuery,
+  useLazySearchMessagesQuery,
   useSendMessageMutation,
   useSendAttachmentMutation,
   useMarkChatReadMutation,

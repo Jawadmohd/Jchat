@@ -65,4 +65,27 @@ export const emitChatUpdated = (chatId: string, payload: unknown) => {
   void emitToChatParticipants(chatId, "chat:updated", payload);
 };
 
+export const emitStatusCreated = (recipientIds: string[], status: unknown) => {
+  if (!io) {
+    return;
+  }
+
+  for (const recipientId of recipientIds) {
+    io.to(getUserRoom(recipientId)).emit("status:new", status);
+  }
+};
+
+export const emitStatusDeleted = (
+  recipientIds: string[],
+  payload: { statusId: string; authorId: string }
+) => {
+  if (!io) {
+    return;
+  }
+
+  for (const recipientId of recipientIds) {
+    io.to(getUserRoom(recipientId)).emit("status:deleted", payload);
+  }
+};
+
 export { emitToChatParticipants };

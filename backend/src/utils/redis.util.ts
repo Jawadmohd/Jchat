@@ -31,7 +31,12 @@ export const connectRedis = async (): Promise<Redis | null> => {
     return redis;
   } catch (error) {
     console.error("Failed to connect to Redis — caching disabled:", error);
-    await client.quit().catch(() => undefined);
+    await client.quit().catch((quitError) => {
+      console.warn(
+        "Failed to close Redis client after connect error:",
+        quitError instanceof Error ? quitError.message : String(quitError)
+      );
+    });
     return null;
   }
 };

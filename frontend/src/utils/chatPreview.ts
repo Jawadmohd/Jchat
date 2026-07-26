@@ -114,6 +114,13 @@ export const decryptChatLastMessagePreview = async (
         error instanceof ChatKeyUnavailableError
           ? "Encrypted message"
           : "Encrypted message";
+
+      if (!(error instanceof ChatKeyUnavailableError)) {
+        console.warn(
+          `Failed to decrypt chat preview for ${chat.id}:`,
+          error instanceof Error ? error.message : error
+        );
+      }
     }
   }
 

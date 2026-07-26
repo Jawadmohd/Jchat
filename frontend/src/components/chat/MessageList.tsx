@@ -13,6 +13,7 @@ interface MessageListProps {
   isLoading: boolean;
   hasMore: boolean;
   isLoadingOlder: boolean;
+  highlightedMessageId?: string | null;
   onLoadOlder: () => void;
   onEditMessage: (messageId: string, content: string) => Promise<void>;
   onDeleteMessage: (messageId: string) => Promise<void>;
@@ -28,6 +29,7 @@ export default function MessageList({
   isLoading,
   hasMore,
   isLoadingOlder,
+  highlightedMessageId = null,
   onLoadOlder,
   onEditMessage,
   onDeleteMessage,
@@ -74,6 +76,12 @@ export default function MessageList({
     const currentCount = messages.length;
     const isPrepend = currentCount > previousCount && previousCount > 0;
 
+    if (highlightedMessageId) {
+      previousMessageCountRef.current = currentCount;
+      previousScrollHeightRef.current = container.scrollHeight;
+      return;
+    }
+
     if (isPrepend && !shouldStickToBottomRef.current) {
       const heightDiff = container.scrollHeight - previousScrollHeightRef.current;
       container.scrollTop += heightDiff;
@@ -83,7 +91,16 @@ export default function MessageList({
 
     previousMessageCountRef.current = currentCount;
     previousScrollHeightRef.current = container.scrollHeight;
-  }, [messages]);
+  }, [highlightedMessageId, messages]);
+
+  useEffect(() => {
+    if (!highlightedMessageId) {
+      return;
+    }
+
+    const element = document.getElementById(`message-${highlightedMessageId}`);
+    element?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, [highlightedMessageId]);
 
   if (isLoading) {
     return (
@@ -127,9 +144,16 @@ export default function MessageList({
           const previousDateKey =
             index > 0 ? getMessageDateKey(messages[index - 1].createdAt) : null;
           const showDateDivider = currentDateKey !== previousDateKey;
+          const isHighlighted = highlightedMessageId === message.id;
 
           return (
-            <div key={message.id}>
+            <div
+              key={message.id}
+              id={`message-${message.id}`}
+              className={`rounded-xl transition ${
+                isHighlighted ? "bg-secondary/5 ring-1 ring-secondary/20" : ""
+              }`}
+            >
               {showDateDivider && (
                 <MessageDateDivider label={formatMessageDateLabel(message.createdAt)} />
               )}

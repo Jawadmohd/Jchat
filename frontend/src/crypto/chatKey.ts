@@ -118,11 +118,15 @@ const getGroupChatKey = async (chat: Chat, userId: string) => {
       unwrappedKeySignature.set(chat.id, nextSignature);
       pendingGroupKeys.delete(chat.id);
       return key;
-    } catch {
+    } catch (error) {
       chatKeyCache.delete(chat.id);
       pendingGroupKeys.delete(chat.id);
       unwrappedKeySignature.delete(chat.id);
       await clearChatKeyRaw(chat.id);
+      console.warn(
+        `Failed to unwrap group key for chat ${chat.id}:`,
+        error instanceof Error ? error.message : error
+      );
       throw new ChatKeyUnavailableError("Failed to unlock the group encryption key");
     }
   }
@@ -234,8 +238,12 @@ export const shareMissingGroupWrappedKeys = async (
     if (keysToUpload.length > 0) {
       return uploadWrappedKeys(keysToUpload);
     }
-  } catch {
+  } catch (error) {
     // Another member may need to share keys later.
+    console.warn(
+      `Failed to share missing group keys for chat ${chat.id}:`,
+      error instanceof Error ? error.message : error
+    );
   }
 
   return chat;
@@ -349,7 +357,11 @@ export const decryptMessages = async (messages: Message[], chat: Chat, userId: s
             } else {
               replyContent = "Encrypted message";
             }
-          } catch {
+          } catch (error) {
+            console.warn(
+              `Failed to decrypt reply preview for message ${message.id}:`,
+              error instanceof Error ? error.message : error
+            );
             replyContent = "[Unable to decrypt message]";
           }
         }

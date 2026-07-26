@@ -235,3 +235,37 @@ export const deleteMessage = async (
 
   return { messageId, chatId };
 };
+
+const escapeRegex = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+export const searchMessagesByChat = async (
+  chatId: string,
+  userId: string,
+  query: string,
+  limit = 30
+) => {
+  await assertChatParticipant(chatId, userId);
+
+  const trimmed = query.trim();
+
+  if (!trimmed) {
+    return [];
+  }
+
+  const pattern = new RegExp(escapeRegex(trimmed), "i");
+  const cappedLimit = Math.min(Math.max(limit, 1), 50);
+
+  const messages = await Message.find({
+    chat: chatId,
+    $or: [
+      { content: pattern },
+      { attachmentName: pattern },
+    ],
+  })
+    .sort({ createdAt: -1 })
+    .limit(cappedLimit)
+    .populate("sender", SENDER_POPULATE_FIELDS)
+    .populate(REPLY_POPULATE);
+
+  return messages.map((message) => toPublicMessage(message));
+};

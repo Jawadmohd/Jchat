@@ -117,3 +117,41 @@ export const uploadMessageAttachmentToCloudinary = async (
     messageType: isImage ? "image" : "file",
   };
 };
+
+interface StatusMediaUploadResult {
+  url: string;
+  publicId: string;
+}
+
+export const uploadStatusMediaToCloudinary = async (
+  file: Express.Multer.File,
+  userId: string
+): Promise<StatusMediaUploadResult> => {
+  configureCloudinary();
+
+  const result = await new Promise<UploadApiResponse>((resolve, reject) => {
+    const upload = cloudinary.uploader.upload_stream(
+      {
+        folder: "jchat/status",
+        public_id: `${userId}-${Date.now()}`,
+        resource_type: "image",
+        transformation: [{ width: 1080, height: 1920, crop: "limit" }],
+      },
+      (error, uploadResult) => {
+        if (error || !uploadResult) {
+          reject(error ?? new Error("Cloudinary upload failed"));
+          return;
+        }
+
+        resolve(uploadResult);
+      }
+    );
+
+    upload.end(file.buffer);
+  });
+
+  return {
+    url: result.secure_url,
+    publicId: result.public_id,
+  };
+};

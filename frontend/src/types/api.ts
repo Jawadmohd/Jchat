@@ -33,3 +33,11 @@ export type {
   PresenceUpdateEvent,
   TypingEvent,
 } from "./events";
+export type {
+  StatusContactGroup,
+  StatusFeed,
+  StatusFeedResponse,
+  StatusItem,
+  StatusResponse,
+  StatusViewerEntry,
+} from "./status";

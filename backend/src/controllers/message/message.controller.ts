@@ -6,6 +6,7 @@ import {
   getPinnedMessagesByChat,
   getMessageReadReceipts,
   pinMessage,
+  searchMessagesByChat,
   toggleMessageReaction,
   unpinMessage,
   updateMessage,
@@ -32,6 +33,19 @@ export const listMessages = asyncHandler(async (req: Request, res: Response) => 
 export const listPinnedMessages = asyncHandler(async (req: Request, res: Response) => {
   const chatId = String(req.params.chatId);
   const messages = await getPinnedMessagesByChat(chatId, req.user!.id);
+
+  res.status(200).json({
+    success: true,
+    count: messages.length,
+    data: messages,
+  });
+});
+
+export const searchMessages = asyncHandler(async (req: Request, res: Response) => {
+  const chatId = String(req.params.chatId);
+  const query = String(req.query.q ?? "");
+  const limit = req.query.limit ? Number(req.query.limit) : undefined;
+  const messages = await searchMessagesByChat(chatId, req.user!.id, query, limit);
 
   res.status(200).json({
     success: true,

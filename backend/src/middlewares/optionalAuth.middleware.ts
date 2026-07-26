@@ -31,7 +31,12 @@ export const optionalAuthenticate = async (
     };
 
     next();
-  } catch {
+  } catch (error) {
+    // Optional auth must not block the request; log unexpected errors only.
+    const message = error instanceof Error ? error.message : String(error);
+    if (!message.includes("Invalid or expired token")) {
+      console.warn("Optional auth skipped due to error:", message);
+    }
     next();
   }
 };

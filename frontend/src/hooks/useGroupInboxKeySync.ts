@@ -50,8 +50,12 @@ export const useGroupInboxKeySync = (chats: Chat[]) => {
         .then(() => {
           syncedTokensRef.current.add(syncToken);
         })
-        .catch(() => {
+        .catch((error) => {
           syncedTokensRef.current.add(syncToken);
+          console.warn(
+            `Group key sync failed for chat ${chat.id}:`,
+            error instanceof Error ? error.message : error
+          );
         });
     }
   }, [chats, isReady, upsertE2EEKeys, user?.id]);

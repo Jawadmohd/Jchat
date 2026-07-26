@@ -8,6 +8,8 @@ export const EventTypes = {
   CHAT_UPDATED: "chat.updated",
   INBOX_INVALIDATED: "inbox.invalidated",
   USER_AUTH_INVALIDATED: "user.auth.invalidated",
+  STATUS_CREATED: "status.created",
+  STATUS_DELETED: "status.deleted",
 } as const;
 
 export type EventType = (typeof EventTypes)[keyof typeof EventTypes];
@@ -57,6 +59,14 @@ export interface EventPayloadMap {
   };
   [EventTypes.USER_AUTH_INVALIDATED]: {
     userId: string;
+  };
+  [EventTypes.STATUS_CREATED]: {
+    status: unknown;
+    authorId: string;
+  };
+  [EventTypes.STATUS_DELETED]: {
+    statusId: string;
+    authorId: string;
   };
 }
 

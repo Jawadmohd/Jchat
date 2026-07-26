@@ -6,3 +6,9 @@ export {
   type IMessageDocument,
   type MessageType,
 } from "./message.model";
+export {
+  Status,
+  type IStatus,
+  type IStatusDocument,
+  type StatusType,
+} from "./status.model";

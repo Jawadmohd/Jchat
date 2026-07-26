@@ -53,7 +53,7 @@ const baseQueryWithReauth: BaseQueryFn<
 export const authApi = createApi({
   reducerPath: "authApi",
   baseQuery: baseQueryWithReauth,
-  tagTypes: ["User", "Chat", "Message"],
+  tagTypes: ["User", "Chat", "Message", "Status"],
   endpoints: (builder) => ({
     register: builder.mutation<AuthResponse, RegisterRequest>({
       query: (body) => ({
@@ -145,8 +145,8 @@ export const authApi = createApi({
         try {
           const { data } = await queryFulfilled;
           dispatch(setCredentials(data));
-        } catch {
-          // Keep existing credentials on failure.
+        } catch (error) {
+          console.warn("Avatar upload succeeded on network but credentials sync failed:", error);
         }
       },
     }),
@@ -161,8 +161,8 @@ export const authApi = createApi({
         try {
           const { data } = await queryFulfilled;
           dispatch(setCredentials(data));
-        } catch {
-          // Keep existing credentials on failure.
+        } catch (error) {
+          console.warn("Avatar remove succeeded on network but credentials sync failed:", error);
         }
       },
     }),
@@ -178,8 +178,8 @@ export const authApi = createApi({
         try {
           const { data } = await queryFulfilled;
           dispatch(setCredentials(data));
-        } catch {
-          // Keep existing credentials on failure.
+        } catch (error) {
+          console.warn("Profile update succeeded on network but credentials sync failed:", error);
         }
       },
     }),
@@ -195,8 +195,11 @@ export const authApi = createApi({
         try {
           const { data } = await queryFulfilled;
           dispatch(setCredentials(data));
-        } catch {
-          // Keep existing credentials on failure.
+        } catch (error) {
+          console.warn(
+            "Identity key upload succeeded on network but credentials sync failed:",
+            error
+          );
         }
       },
     }),

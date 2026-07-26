@@ -28,16 +28,23 @@ export function useChatPreviewMap(chats: Chat[], userId?: string) {
     let cancelled = false;
     const currentChats = chatsRef.current;
 
-    void Promise.all(
+    Promise.all(
       currentChats.map(async (chat) => {
         const preview = await decryptChatLastMessagePreview(chat, userId);
         return [chat.id, preview] as const;
       })
-    ).then((entries) => {
-      if (!cancelled) {
-        setPreviewByChatId(Object.fromEntries(entries));
-      }
-    });
+    )
+      .then((entries) => {
+        if (!cancelled) {
+          setPreviewByChatId(Object.fromEntries(entries));
+        }
+      })
+      .catch((error) => {
+        console.warn(
+          "Failed to decrypt chat previews:",
+          error instanceof Error ? error.message : error
+        );
+      });
 
     return () => {
       cancelled = true;

@@ -1,5 +1,10 @@
 import { getRedis, isRedisReady } from "../utils/redis.util";
 
+const logCacheError = (operation: string, error: unknown) => {
+  const message = error instanceof Error ? error.message : String(error);
+  console.warn(`Redis cache ${operation} failed:`, message);
+};
+
 export const cacheGet = async <T>(key: string): Promise<T | null> => {
   if (!isRedisReady()) {
     return null;
@@ -8,7 +13,8 @@ export const cacheGet = async <T>(key: string): Promise<T | null> => {
   try {
     const raw = await getRedis()!.get(key);
     return raw ? (JSON.parse(raw) as T) : null;
-  } catch {
+  } catch (error) {
+    logCacheError(`get(${key})`, error);
     return null;
   }
 };
@@ -20,8 +26,8 @@ export const cacheSet = async (key: string, value: unknown, ttlSeconds: number) 
 
   try {
     await getRedis()!.set(key, JSON.stringify(value), "EX", ttlSeconds);
-  } catch {
-    // Cache write failures should not break requests.
+  } catch (error) {
+    logCacheError(`set(${key})`, error);
   }
 };
 
@@ -32,8 +38,8 @@ export const cacheDelete = async (key: string) => {
 
   try {
     await getRedis()!.del(key);
-  } catch {
-    // Ignore cache delete failures.
+  } catch (error) {
+    logCacheError(`del(${key})`, error);
   }
 };
 
@@ -54,8 +60,8 @@ export const cacheDeletePattern = async (pattern: string) => {
         await client.del(...keys);
       }
     } while (cursor !== "0");
-  } catch {
-    // Ignore scan/delete failures.
+  } catch (error) {
+    logCacheError(`scan/del(${pattern})`, error);
   }
 };
 
