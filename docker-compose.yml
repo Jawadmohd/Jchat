@@ -64,8 +64,8 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        VITE_API_URL: /api
-        VITE_SOCKET_URL: /
+        VITE_API_URL: /jchat/api
+        VITE_SOCKET_URL: /jchat
 
     restart: unless-stopped
 
