@@ -42,7 +42,8 @@ export default function AuthLayout({
             backgroundImage:
               "linear-gradient(rgba(0,0,0,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(0,0,0,0.04) 1px, transparent 1px)",
             backgroundSize: "48px 48px",
-            maskImage: "radial-gradient(circle at center, black, transparent 80%)",
+            maskImage:
+              "radial-gradient(circle at center, black, transparent 80%)",
           }}
         />
         <div className="pointer-events-none absolute -right-10 top-[10%] h-[280px] w-[280px] rounded-full bg-primary opacity-70 blur-[80px]" />
@@ -63,7 +64,9 @@ export default function AuthLayout({
               <li key={feature.title} className="flex items-start gap-3.5">
                 <span className="mt-2 h-2 w-2 shrink-0 rounded-full bg-secondary" />
                 <div>
-                  <strong className="block text-[0.95rem]">{feature.title}</strong>
+                  <strong className="block text-[0.95rem]">
+                    {feature.title}
+                  </strong>
                   <p className="mt-0.5 text-sm leading-relaxed text-muted">
                     {feature.description}
                   </p>
@@ -86,7 +89,7 @@ export default function AuthLayout({
         </div>
       </aside>
 
-      <main className="flex items-center justify-center bg-primary p-5 md:p-8">
+      <main className="flex justify-center bg-primary p-5 pt-10 overflow-y-auto md:p-8 lg:items-center">
         <div className="w-full max-w-[440px] animate-fade-up p-2">
           <div className="mb-6 lg:hidden">
             <Logo compact />
@@ -96,7 +99,9 @@ export default function AuthLayout({
             <h1 className="text-3xl font-bold tracking-tight text-secondary md:text-4xl">
               {title}
             </h1>
-            <p className="mt-2 text-base leading-relaxed text-muted">{subtitle}</p>
+            <p className="mt-2 text-base leading-relaxed text-muted">
+              {subtitle}
+            </p>
           </div>
 
           {children}

@@ -13,7 +13,7 @@ function RootRedirect() {
 
 export default function AppRouter() {
   return (
-    <BrowserRouter>
+    <BrowserRouter basename={import.meta.env.BASE_URL}>
       <Routes>
         <Route element={<ProtectedRoute />}>
           <Route path="/" element={<HomePage />} />

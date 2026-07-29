@@ -6,7 +6,7 @@ const TOKEN_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 export const setAuthCookie = (res: Response, token: string): void => {
   res.cookie(TOKEN_COOKIE_NAME, token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    // secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
     path: "/",
     maxAge: TOKEN_MAX_AGE_MS,
@@ -16,7 +16,7 @@ export const setAuthCookie = (res: Response, token: string): void => {
 export const clearAuthCookie = (res: Response): void => {
   res.clearCookie(TOKEN_COOKIE_NAME, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    // secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
     path: "/",
   });
